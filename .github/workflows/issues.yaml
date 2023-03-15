@@ -8,3 +8,4 @@ jobs:
     uses: canonical/observability/.github/workflows/issues.yaml@main
     with:
       component: cos-alerter
+    secrets: inherit
