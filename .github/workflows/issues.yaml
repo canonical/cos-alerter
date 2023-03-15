@@ -1,0 +1,10 @@
+name: Issues
+
+on: [issues]
+
+jobs:
+  issues:
+    name: Update Issues
+    uses: canonical/observability/.github/workflows/issues.yaml@main
+    with:
+      component: cos-alerter
