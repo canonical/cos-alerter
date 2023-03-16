@@ -1,0 +1,11 @@
+[watcher]
+down_interval = "5m"
+time_file = "/run/cos-alerter-time"
+
+[alerter]
+smtp_address = "smtp.gmail.com"
+smtp_ssl_port = "465"
+smtp_username = <your_email_username>
+smtp_password = <your_email_password>
+send_address = <your_email_address>
+recipients = ["example-0@example.com", "example-1@example.com"]

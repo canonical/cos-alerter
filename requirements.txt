@@ -1,0 +1,3 @@
+durationpy
+flask~=2.2
+toml
