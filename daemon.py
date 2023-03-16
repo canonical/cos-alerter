@@ -6,6 +6,7 @@ import pathlib
 import signal
 import smtplib
 import subprocess
+import sys
 import time
 import tomllib
 
@@ -31,6 +32,9 @@ def send_test_mail(_, __):
     server.sendmail(from_addr=conf['alerter']['send_address'], to_addrs=', '.join(conf['alerter']['recipients']), msg=msg.as_string())
     return "<p>Hello, World!</p>"
 
+def sigint(_, __):
+    sys.exit()
+
 def main():
 
     # Write to the time file once at start so we can start checking immediately.
@@ -38,6 +42,7 @@ def main():
 
     update_conf(None, None)
 
+    signal.signal(signal.SIGINT, sigint)
     signal.signal(signal.SIGHUP, update_conf)
     signal.signal(signal.SIGUSR1, send_test_mail)
 
