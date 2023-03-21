@@ -2,13 +2,18 @@ import fcntl
 import json
 import tomllib
 
+import apprise
+
 config = {}
+
 
 class Conf:
     def __getitem__(self, key):
         return config[key]
 
+
 conf = Conf()
+
 
 def update_conf():
     global config
@@ -46,3 +51,10 @@ class DataWriter:
     @notify_time.setter
     def notify_time(self, value):
         self.data['notify_time'] = value
+
+
+def send_notifications(title, body):
+    sender = apprise.Apprise()
+    for source in conf['notify']['destinations']:
+        sender.add(source)
+    sender.notify(title=title, body=body)
