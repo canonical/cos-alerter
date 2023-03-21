@@ -2,56 +2,63 @@
 
 import durationpy
 import email
-import pathlib
+import json
 import signal
 import smtplib
 import subprocess
 import sys
 import time
-import tomllib
 
-conf = {}
+from alerter import DataWriter, conf, update_conf
 
-def send_mail():
+
+def notify(time_data):
     # TODO: actually send email
+    if not time.time() - time_data.notify_time > durationpy.from_str(conf['notify']['repeat_interval']).total_seconds():
+        #TODO log something here
+        return
+    time_data.notify_time = time.time()
     print("Alertmanager down! Sending mail.")
 
-def update_conf(_, __):
-    global conf
-    with open('/etc/cos-alerter.toml', 'rb') as f:
-        conf = tomllib.load(f)
+
+def sighup(_, __):
+    update_conf()
+
 
 def send_test_mail(_, __):
     msg = email.message.EmailMessage()
     msg['Subject'] = 'cos-alerter test email'
-    msg['From'] = conf['alerter']['send_address']
-    msg['To'] = ', '.join(conf['alerter']['recipients'])
+    msg['From'] = conf['notify']['send_address']
+    msg['To'] = ', '.join(conf['notify']['recipients'])
     msg.set_content('This is a test email from COS Alerter.')
-    server = smtplib.SMTP_SSL(host=conf['alerter']['smtp_address'], port=conf['alerter']['smtp_ssl_port'])
-    server.login(user=conf['alerter']['smtp_username'], password=conf['alerter']['smtp_password'])
-    server.sendmail(from_addr=conf['alerter']['send_address'], to_addrs=', '.join(conf['alerter']['recipients']), msg=msg.as_string())
+    server = smtplib.SMTP_SSL(host=conf['notify']['smtp_address'], port=conf['notify']['smtp_ssl_port'])
+    server.login(user=conf['notify']['smtp_username'], password=conf['notify']['smtp_password'])
+    server.sendmail(from_addr=conf['notify']['send_address'], to_addrs=', '.join(conf['notify']['recipients']), msg=msg.as_string())
     return "<p>Hello, World!</p>"
+
 
 def sigint(_, __):
     sys.exit()
 
+
 def main():
 
-    # Write to the time file once at start so we can start checking immediately.
-    pathlib.Path('/var/lib/cos-alerter.txt').touch()
+    update_conf()
 
-    update_conf(None, None)
+    # Create the initial data file
+    with open(conf['watcher']['data_file'], 'w') as f:
+        json.dump({'alert_time': time.time(), 'notify_time': 0.0}, f)
 
     signal.signal(signal.SIGINT, sigint)
-    signal.signal(signal.SIGHUP, update_conf)
+    signal.signal(signal.SIGHUP, sighup)
     signal.signal(signal.SIGUSR1, send_test_mail)
 
-    server_proc = subprocess.Popen(['flask', '--app', 'root.server', 'run', '--host', '0.0.0.0'])
+    subprocess.Popen(['flask', '--app', 'root.alerter.server', 'run', '--host', '0.0.0.0'])
 
     while(True):
-        mod_time = pathlib.Path('/var/lib/cos-alerter.txt').stat().st_mtime
-        if time.time() - mod_time > durationpy.from_str(conf['watcher']['down_interval']).total_seconds():
-            send_mail()
+        with DataWriter() as time_data:
+            if time.time() - time_data.alert_time > durationpy.from_str(conf['watcher']['down_interval']).total_seconds():
+                notify(time_data)
 
 
 if __name__ == '__main__':
