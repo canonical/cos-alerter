@@ -2,7 +2,7 @@
 
 ## Configuring Alertmanager
 
-Add the following sections to your Alertmanager config integrate with COS Alerter:
+Add the following sections to your Alertmanager config to integrate with COS Alerter:
 ```yaml
 receivers:
 ...
