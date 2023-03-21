@@ -1,24 +1,29 @@
 #!/usr/bin/env python3
 
+import datetime
 import durationpy
-import email
 import json
 import signal
-import smtplib
 import subprocess
 import sys
+import textwrap
 import time
 
 from alerter import DataWriter, conf, update_conf, send_notifications
 
 
 def notify(time_data):
-    # TODO: actually send email
     if not time.time() - time_data.notify_time > durationpy.from_str(conf['notify']['repeat_interval']).total_seconds():
         #TODO log something here
         return
     time_data.notify_time = time.time()
-    print("Alertmanager down! Sending mail.")
+    last_alert_time = datetime.datetime.fromtimestamp(time_data.alert_time).strftime('%A, %B %d %Y %I:%M%p %Z')
+    title='**Alertmanager is Down!**'
+    body=textwrap.dedent(f'''
+    Your Alertmanager instance seems to be down!
+    It has not alerted COS-Alerter since {last_alert_time}.
+    ''')
+    send_notifications(title=title, body=body)
 
 
 def sighup(_, __):
