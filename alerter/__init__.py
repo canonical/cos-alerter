@@ -4,27 +4,20 @@ import tomllib
 
 import apprise
 
-conf = {}
-
 
 class Config:
     def __getitem__(self, key):
-        return conf[key]
+        with open('/etc/cos-alerter.toml', 'rb') as f:
+            return tomllib.load(f)[key]
 
 
 config = Config()
 
 
-def update_config():
-    global conf
-    with open('/etc/cos-alerter.toml', 'rb') as f:
-        conf = tomllib.load(f)
-
-
 class DataWriter:
 
     def __enter__(self):
-        self.fh = open(conf['watch']['data_file'], 'r+')
+        self.fh = open(config['watch']['data_file'], 'r+')
         fcntl.lockf(self.fh, fcntl.LOCK_EX)
         self.data = json.load(self.fh)
         return self
@@ -55,6 +48,6 @@ class DataWriter:
 
 def send_notifications(title, body):
     sender = apprise.Apprise()
-    for source in conf['notify']['destinations']:
+    for source in config['notify']['destinations']:
         sender.add(source)
     sender.notify(title=title, body=body)
