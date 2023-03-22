@@ -1,5 +1,10 @@
-[watcher]
+[watch]
+
+# The time that needs to pass without receiving an alert after which Alertmanager is considered down.
+# This should be longer than the repeat_interval set in Alertmanager.
 down_interval = "5m"
+
+# The location of the file which stores temporary data for COS Alerter.
 data_file = "/run/cos-alerter-data.json"
 
 [notify]
@@ -13,4 +18,5 @@ destinations = [
   'slack://xoxb-1234-1234-4ddbc191d40ee098cbaae6f3523ada2d/#general',
 ]
 
+# When Alertmanager is down, the amount of time between notifications.
 repeat_interval = "1h"

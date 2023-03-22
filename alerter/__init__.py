@@ -4,27 +4,27 @@ import tomllib
 
 import apprise
 
-config = {}
+conf = {}
 
 
-class Conf:
+class Config:
     def __getitem__(self, key):
-        return config[key]
+        return conf[key]
 
 
-conf = Conf()
+config = Config()
 
 
-def update_conf():
-    global config
+def update_config():
+    global conf
     with open('/etc/cos-alerter.toml', 'rb') as f:
-        config = tomllib.load(f)
+        conf = tomllib.load(f)
 
 
 class DataWriter:
 
     def __enter__(self):
-        self.fh = open(config['watcher']['data_file'], 'r+')
+        self.fh = open(conf['watch']['data_file'], 'r+')
         fcntl.lockf(self.fh, fcntl.LOCK_EX)
         self.data = json.load(self.fh)
         return self

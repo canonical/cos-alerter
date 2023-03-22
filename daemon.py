@@ -9,11 +9,11 @@ import sys
 import textwrap
 import time
 
-from alerter import DataWriter, conf, update_conf, send_notifications
+from alerter import DataWriter, config, update_config, send_notifications
 
 
 def notify(time_data):
-    if not time.time() - time_data.notify_time > durationpy.from_str(conf['notify']['repeat_interval']).total_seconds():
+    if not time.time() - time_data.notify_time > durationpy.from_str(config['notify']['repeat_interval']).total_seconds():
         #TODO log something here
         return
     time_data.notify_time = time.time()
@@ -27,7 +27,7 @@ def notify(time_data):
 
 
 def sighup(_, __):
-    update_conf()
+    update_config()
 
 
 def send_test_mail(_, __):
@@ -40,10 +40,10 @@ def sigint(_, __):
 
 def main():
 
-    update_conf()
+    update_config()
 
     # Create the initial data file
-    with open(conf['watcher']['data_file'], 'w') as f:
+    with open(config['watch']['data_file'], 'w') as f:
         json.dump({'alert_time': time.time(), 'notify_time': 0.0}, f)
 
     signal.signal(signal.SIGINT, sigint)
@@ -54,7 +54,7 @@ def main():
 
     while(True):
         with DataWriter() as time_data:
-            if time.time() - time_data.alert_time > durationpy.from_str(conf['watcher']['down_interval']).total_seconds():
+            if time.time() - time_data.alert_time > durationpy.from_str(config['watch']['down_interval']).total_seconds():
                 notify(time_data)
 
 
