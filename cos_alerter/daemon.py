@@ -9,7 +9,7 @@ import sys
 import textwrap
 import time
 
-from alerter import DataWriter, config, send_notifications
+from .alerter import DataWriter, config, send_notifications
 
 
 def notify(time_data):
@@ -18,8 +18,8 @@ def notify(time_data):
         return
     time_data.notify_time = time.time()
     last_alert_time = datetime.datetime.fromtimestamp(time_data.alert_time).strftime('%A, %B %d %Y %I:%M%p %Z')
-    title='**Alertmanager is Down!**'
-    body=textwrap.dedent(f'''
+    title = '**Alertmanager is Down!**'
+    body = textwrap.dedent(f'''
     Your Alertmanager instance seems to be down!
     It has not alerted COS-Alerter since {last_alert_time}.
     ''')
@@ -43,7 +43,7 @@ def main():
     signal.signal(signal.SIGINT, sigint)
     signal.signal(signal.SIGUSR1, send_test_mail)
 
-    subprocess.Popen(['flask', '--app', 'root.alerter.server', 'run', '--host', '0.0.0.0'])
+    subprocess.Popen(['waitress-serve', 'cos_alerter.server:app'])
 
     while(True):
         with DataWriter() as time_data:

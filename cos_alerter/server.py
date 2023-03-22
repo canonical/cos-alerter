@@ -3,7 +3,7 @@ import tomllib
 
 from flask import Flask
 
-from . import DataWriter
+from .alerter import DataWriter
 
 app = Flask(__name__)
 with open('/etc/cos-alerter.toml', 'rb') as f:
