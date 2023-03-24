@@ -1,5 +1,7 @@
 # COS Alerter
-
+COS Alerter is intended to be used together with alertmanager and prometheus:
+- Liveness of Alertmanager through an always-firing alert rule ("Watchdog")
+- Liveness of COS Alerter itself from a metric endpoint it exposes and prometheus scrapes
 ## Configuring Alertmanager
 
 Add the following sections to your Alertmanager config to integrate with COS Alerter:
