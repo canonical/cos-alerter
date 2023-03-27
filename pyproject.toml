@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cos-alerter"
+version = "0.1.0"
+authors = [
+  { name="Dylan Stephano-Shachter", email="dylan.stephano-shachter@canonical.com" }
+]
+description = "A watcher for Alertmanager"
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+  "Programming Language :: Python",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Topic :: System :: Monitoring",
+  "Development Status :: 2 - Pre-Alpha",
+]
+dependencies = [
+  "apprise~=1.3",
+  "durationpy",
+  "flask~=2.2",
+  "waitress~=2.1",
+  "pyyaml~=6.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/canonical/cos-alerter"
+"Bug Tracker" = "https://github.com/canonical/cos-alerter/issues"
+
+[project.scripts]
+cos-alerter = "cos_alerter.daemon:main"

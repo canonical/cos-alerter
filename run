@@ -1,0 +1,2 @@
+docker build . -t cos-alerter
+docker run -p 8080:8080 --mount type=bind,source="$(pwd)"/cos-alerter.yaml,target=/etc/cos-alerter.yaml,readonly -it cos-alerter
