@@ -12,6 +12,10 @@ import time
 from .alerter import AlerterState, config, send_notifications
 
 
+def down_interval():
+    return durationpy.from_str(config['watch']['down_interval']).total_seconds()
+
+
 def notify(time_data):
     if not time.time() - time_data.notify_time > durationpy.from_str(config['notify']['repeat_interval']).total_seconds():
         #TODO log something here
@@ -47,7 +51,7 @@ def main():
 
     while(True):
         with AlerterState() as time_data:
-            if time.time() - time_data.alert_time > durationpy.from_str(config['watch']['down_interval']).total_seconds():
+            if time.time() - time_data.alert_time > down_interval():
                 notify(time_data)
         time.sleep(1)
 
