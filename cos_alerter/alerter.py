@@ -14,7 +14,7 @@ class Config:
 config = Config()
 
 
-class DataWriter:
+class AlerterState:
 
     def __enter__(self):
         self.fh = open(config['watch']['data_file'], 'r+')

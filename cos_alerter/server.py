@@ -3,7 +3,7 @@ import yaml
 
 from flask import Flask
 
-from .alerter import DataWriter
+from .alerter import AlerterState
 
 app = Flask(__name__)
 with open('/etc/cos-alerter.yaml', 'rb') as f:
@@ -13,6 +13,6 @@ with open('/etc/cos-alerter.yaml', 'rb') as f:
 @app.route('/alive', methods=['POST'])
 def alive():
     # TODO Decide if we should validate the request.
-    with DataWriter() as data:
+    with AlerterState() as data:
         data.alert_time = time.time()
     return 'Success!'

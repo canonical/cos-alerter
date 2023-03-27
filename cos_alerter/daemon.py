@@ -9,7 +9,7 @@ import sys
 import textwrap
 import time
 
-from .alerter import DataWriter, config, send_notifications
+from .alerter import AlerterState, config, send_notifications
 
 
 def notify(time_data):
@@ -46,7 +46,7 @@ def main():
     subprocess.Popen(['waitress-serve', 'cos_alerter.server:app'])
 
     while(True):
-        with DataWriter() as time_data:
+        with AlerterState() as time_data:
             if time.time() - time_data.alert_time > durationpy.from_str(config['watch']['down_interval']).total_seconds():
                 notify(time_data)
         time.sleep(1)
