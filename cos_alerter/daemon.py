@@ -21,7 +21,7 @@ def notify(time_data):
         #TODO log something here
         return
     time_data.notify_time = time.time()
-    last_alert_time = datetime.datetime.fromtimestamp(time_data.alert_time).strftime('%A, %B %d %Y %I:%M%p')
+    last_alert_time = datetime.datetime.fromtimestamp(time_data.alert_time).isoformat()
     title = '**Alertmanager is Down!**'
     body = textwrap.dedent(f'''
         Your Alertmanager instance seems to be down!
