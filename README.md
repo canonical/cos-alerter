@@ -25,6 +25,6 @@ route:
 
 ## Run COS Alerter
 
-* Copy the contents of `cos-alerter-default.toml` to `cos-alerter.toml` and fill in with correct values.
+* Copy the contents of `cos-alerter-default.yaml` to `cos-alerter.yaml` and fill in with correct values.
 * `docker build . -t cos-alerter`
-* `docker run -p 8080:8080 --mount type=bind,source="$(pwd)"/cos-alerter.toml,target=/etc/cos-alerter.toml,readonly -it cos-alerter`
+* `docker run -p 8080:8080 --mount type=bind,source="$(pwd)"/cos-alerter.yaml,target=/etc/cos-alerter.yaml,readonly -it cos-alerter`

@@ -1,13 +1,13 @@
 import time
-import tomllib
+import yaml
 
 from flask import Flask
 
 from .alerter import DataWriter
 
 app = Flask(__name__)
-with open('/etc/cos-alerter.toml', 'rb') as f:
-    app.config.update(tomllib.load(f))
+with open('/etc/cos-alerter.yaml', 'rb') as f:
+    app.config.update(yaml.safe_load(f))
 
 
 @app.route('/alive', methods=['POST'])

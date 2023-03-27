@@ -1,14 +1,14 @@
 import fcntl
 import json
-import tomllib
+import yaml
 
 import apprise
 
 
 class Config:
     def __getitem__(self, key):
-        with open('/etc/cos-alerter.toml', 'rb') as f:
-            return tomllib.load(f)[key]
+        with open('/etc/cos-alerter.yaml', 'rb') as f:
+            return yaml.safe_load(f)[key]
 
 
 config = Config()
