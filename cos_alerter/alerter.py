@@ -1,8 +1,13 @@
+import datetime
 import fcntl
 import json
+import textwrap
+import threading
+import time
 import yaml
 
 import apprise
+import durationpy
 
 
 class Config:
@@ -29,24 +34,63 @@ class AlerterState:
         fcntl.lockf(self.fh, fcntl.LOCK_UN)
         self.fh.close()
 
-    @property
-    def alert_time(self):
-        return self.data['alert_time']
+    @staticmethod
+    def initialize():
+        # Note this method does not do any locking so be responsible.
+        current_date = datetime.datetime.now(datetime.timezone.utc)
+        current_time = time.monotonic()
+        data = {
+            # The actual date and time that COS Alerter was started.
+            'start_date': datetime.datetime.timestamp(current_date),
 
-    @alert_time.setter
-    def alert_time(self, value):
-        self.data['alert_time'] = value
+            # The time according to the monotonic clock that COS Alerter was started.
+            'start_time': current_time,
 
-    @property
-    def notify_time(self):
-        return self.data['notify_time']
+            # The last time we received an alert from Alertmanager.
+            'alert_time': current_time,
 
-    @notify_time.setter
-    def notify_time(self, value):
-        self.data['notify_time'] = value
+            # The last time we sent out notifications.
+            'notify_time': None,
+        }
+
+        with open(config['watch']['data_file'], 'w') as f:
+            json.dump(data, f)
+
+    def set_alert_time(self):
+        self.data['alert_time'] = time.monotonic()
+
+    def _set_notify_time(self):
+        self.data['notify_time'] = time.monotonic()
+
+    def is_down(self):
+        down_interval = durationpy.from_str(config['watch']['down_interval']).total_seconds()
+        if time.monotonic() - self.data['alert_time'] > down_interval:
+            return True
+        return False
+
+    def notify(self):
+        # If we have already notified recently, do nothing.
+        repeat_interval = durationpy.from_str(config['notify']['repeat_interval']).total_seconds()
+        if self.data['notify_time'] and not time.monotonic() - self.data['notify_time'] > repeat_interval:
+            return
+
+        self._set_notify_time()
+        actual_alert_timestamp = (self.data['alert_time'] - self.data['start_time']) + self.data['start_date']
+        last_alert_time = datetime.datetime.fromtimestamp(actual_alert_timestamp, datetime.timezone.utc).isoformat()
+        title = '**Alertmanager is Down!**'
+        body = textwrap.dedent(f'''
+            Your Alertmanager instance seems to be down!
+            It has not alerted COS-Alerter since {last_alert_time} UTC.
+            ''')
+
+        # Sending notifications can be a long operation so handle that in a separate thread.
+        notify_thread = threading.Thread(target=send_notifications, kwargs={'title': title, 'body': body})
+        notify_thread.start()
 
 
 def send_notifications(title, body):
+    # TODO: Since this is run in it's own thread, we have to make sure we properly
+    # log failures here.
     sender = apprise.Apprise()
     for source in config['notify']['destinations']:
         sender.add(source)
