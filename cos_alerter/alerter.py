@@ -80,7 +80,6 @@ class AlerterState:
             return
 
         self._set_notify_time()
-        actual_alert_timestamp = (self.data['alert_time'] - self.data['start_time']) + self.data['start_date']
         last_alert_time = self._last_alert_datetime().isoformat()
         title = '**Alertmanager is Down!**'
         body = textwrap.dedent(f'''
