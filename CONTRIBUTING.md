@@ -1,6 +1,7 @@
 # Contributing to COS Alerter
 
 [Bugs](https://github.com/canonical/cos-alerter/issues)
+
 [Pull Requests](https://github.com/canonical/cos-alerter/pulls)
 
 ## Setup
