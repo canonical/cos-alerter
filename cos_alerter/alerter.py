@@ -64,9 +64,7 @@ class AlerterState:
 
     def is_down(self):
         down_interval = durationpy.from_str(config['watch']['down_interval']).total_seconds()
-        if time.monotonic() - self.data['alert_time'] > down_interval:
-            return True
-        return False
+        return time.monotonic() - self.data['alert_time'] > down_interval
 
     def notify(self):
         # If we have already notified recently, do nothing.
