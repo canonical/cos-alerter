@@ -39,4 +39,5 @@ route:
 ## Run COS Alerter
 
 Coming soon...
-See <CONTRIBUTING.md> for running development builds.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for running development builds.
