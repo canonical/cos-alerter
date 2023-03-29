@@ -57,3 +57,5 @@ copyright-regexp = "Copyright\\s\\d{4}([-,]\\d{4})*\\s+%(author)s"
 
 [tool.pyright]
 include = ["cos_alerter"]
+pythonVersion = "3.8"
+pythonPlatform = "Linux"
