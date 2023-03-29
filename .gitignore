@@ -1,2 +1,6 @@
+.coverage
+.tox
 cos-alerter.yaml
 venv
+*.egg-info
+**/__pycache__
