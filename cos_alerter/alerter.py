@@ -19,7 +19,7 @@ class Config:
     """Representation of the config file."""
 
     def __getitem__(self, key):
-        """Config item dict style access."""
+        """Dict style acccess for config values."""
         with open("/etc/cos-alerter.yaml", "rb") as f:
             return yaml.safe_load(f)[key]
 
@@ -30,8 +30,8 @@ config = Config()
 class AlerterState:
     """Class representing the state of COS Alerter.
 
-    This class uses files to store the state with locking to ensure safe access from multiple
-    threads/processes.
+    This class uses files to store the state. It uses locking to ensure safe access from multiple
+    threads.
     """
 
     def __enter__(self):
@@ -72,6 +72,8 @@ class AlerterState:
             # The time according to the monotonic clock that COS Alerter was started.
             "start_time": current_time,
             # The last time we received an alert from Alertmanager.
+            # This is set to current time instead of None so that the logic a bit more simple
+            # when checking if Alertmanager is down.
             "alert_time": current_time,
             # The last time we sent out notifications.
             "notify_time": None,
@@ -94,7 +96,7 @@ class AlerterState:
         return time.monotonic() - self.data["alert_time"] > down_interval
 
     def _recently_notified(self) -> bool:
-        """Determine if a Notification has been previously sent within the repeat interval."""
+        """Determine if a notification has been previously sent within the repeat interval."""
         repeat_interval = durationpy.from_str(config["notify"]["repeat_interval"]).total_seconds()
         return (
             self.data["notify_time"]

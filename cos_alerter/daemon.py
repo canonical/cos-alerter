@@ -27,13 +27,18 @@ def sigint(_, __):
 
 def main():
     """Main method for COS Alerter."""
+
+    # Initialize the COS Alerter state file
     AlerterState.initialize()
 
+    # Observe signal handlers
     signal.signal(signal.SIGINT, sigint)
     signal.signal(signal.SIGUSR1, send_test_mail)
 
+    # Start the web server
     subprocess.Popen(["waitress-serve", "cos_alerter.server:app"])
 
+    # Main loop
     state = AlerterState()
     while(True):
         with state:
