@@ -66,15 +66,22 @@ class AlerterState:
         down_interval = durationpy.from_str(config['watch']['down_interval']).total_seconds()
         return time.monotonic() - self.data['alert_time'] > down_interval
 
+    def _recently_notified(self):
+        repeat_interval = durationpy.from_str(config['notify']['repeat_interval']).total_seconds()
+        return self.data['notify_time'] and not time.monotonic() - self.data['notify_time'] > repeat_interval
+
+    def _last_alert_datetime(self):
+        actual_alert_timestamp = (self.data['alert_time'] - self.data['start_time']) + self.data['start_date']
+        return datetime.datetime.fromtimestamp(actual_alert_timestamp, datetime.timezone.utc)
+
     def notify(self):
         # If we have already notified recently, do nothing.
-        repeat_interval = durationpy.from_str(config['notify']['repeat_interval']).total_seconds()
-        if self.data['notify_time'] and not time.monotonic() - self.data['notify_time'] > repeat_interval:
+        if self._recently_notified():
             return
 
         self._set_notify_time()
         actual_alert_timestamp = (self.data['alert_time'] - self.data['start_time']) + self.data['start_date']
-        last_alert_time = datetime.datetime.fromtimestamp(actual_alert_timestamp, datetime.timezone.utc).isoformat()
+        last_alert_time = self._last_alert_datetime().isoformat()
         title = '**Alertmanager is Down!**'
         body = textwrap.dedent(f'''
             Your Alertmanager instance seems to be down!
