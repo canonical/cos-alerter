@@ -1,5 +1,6 @@
 .coverage
 .tox
+build
 cos-alerter.yaml
 venv
 *.egg-info
