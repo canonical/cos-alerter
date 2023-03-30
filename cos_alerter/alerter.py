@@ -131,6 +131,7 @@ class AlerterState:
         )
 
         # Sending notifications can be a long operation so handle that in a separate thread.
+        # This avoids interfering with the execution of the main loop.
         notify_thread = threading.Thread(
             target=send_notifications, kwargs={"title": title, "body": body}
         )
