@@ -25,8 +25,9 @@ def main():
 
     subprocess.Popen(['waitress-serve', 'cos_alerter.server:app'])
 
+    state = AlerterState()
     while(True):
-        with AlerterState() as state:
+        with state:
             if state.is_down():
                 state.notify()
         time.sleep(1)
