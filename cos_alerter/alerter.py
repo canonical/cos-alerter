@@ -93,7 +93,7 @@ class AlerterState:
 
 
 def send_notifications(title, body):
-    # TODO: Since this is run in it's own thread, we have to make sure we properly
+    # TODO: Since this is run in its own thread, we have to make sure we properly
     # log failures here.
     sender = apprise.Apprise()
     for source in config['notify']['destinations']:
