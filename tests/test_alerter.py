@@ -2,7 +2,8 @@
 # See LICENSE file for licensing details.
 
 import json
-import time
+import textwrap
+import threading
 import unittest.mock
 
 import freezegun
@@ -31,13 +32,12 @@ def fake_fs(fs):
         )
 
     fs.create_file("/run/cos-alerter-data")
-    current_time = time.monotonic()
     with open("/run/cos-alerter-data", "w") as f:
         json.dump(
             {
-                "start_date": 1680125340.127957,
-                "start_time": current_time,
-                "alert_time": current_time,
+                "start_date": 1672531200.0,
+                "start_time": 1000,
+                "alert_time": 1000,
                 "notify_time": None,
             },
             f,
@@ -93,7 +93,7 @@ def test_is_down_with_reset_alert_timeout(monotonic_mock, fake_fs):
 
 @freezegun.freeze_time("2023-01-01")
 @unittest.mock.patch("time.monotonic")
-def test_notify(monotonic_mock, fake_fs):
+def test_is_down(monotonic_mock, fake_fs):
     monotonic_mock.return_value = 1000
     state = AlerterState()
     state.initialize()
@@ -120,4 +120,34 @@ def test_recently_notified(monotonic_mock, fake_fs):
         assert state._recently_notified() is False
 
 
-# TODO figure out how to properly test notify() and send_notifications()
+@freezegun.freeze_time("2023-01-01")
+@unittest.mock.patch("time.monotonic")
+@unittest.mock.patch("cos_alerter.alerter.send_notifications")
+def test_notify(send_mock, monotonic_mock, fake_fs):
+    monotonic_mock.return_value = 1000
+    state = AlerterState()
+
+    with state:
+        state.notify()
+    for thread in threading.enumerate():
+        if thread != threading.current_thread():
+            thread.join()
+    send_mock.assert_called_with(
+        title="**Alertmanager is Down!**",
+        body=textwrap.dedent(
+            """
+            Your Alertmanager instance seems to be down!
+            It has not alerted COS-Alerter since 2023-01-01T00:00:00+00:00 UTC.
+            """
+        ),
+    )
+
+    # Make sure if we try again, nothing is sent
+    send_mock.reset_mock()
+
+    with state:
+        state.notify()
+    for thread in threading.enumerate():
+        if thread != threading.current_thread():
+            thread.join()
+    send_mock.assert_not_called()
