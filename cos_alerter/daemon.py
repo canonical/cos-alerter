@@ -27,7 +27,6 @@ def sigint(_, __):
 
 def main():
     """Main method for COS Alerter."""
-
     # Initialize the COS Alerter state file
     AlerterState.initialize()
 
@@ -40,7 +39,7 @@ def main():
 
     # Main loop
     state = AlerterState()
-    while(True):
+    while True:
         with state:
             if state.is_down():
                 state.notify()

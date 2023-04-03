@@ -19,7 +19,7 @@ class Config:
     """Representation of the config file."""
 
     def __getitem__(self, key):
-        """Dict style acccess for config values."""
+        """Dict style access for config values."""
         with open("/etc/cos-alerter.yaml", "rb") as f:
             return yaml.safe_load(f)[key]
 
