@@ -78,13 +78,13 @@ def test_is_down_from_initialize(monotonic_mock, fake_fs):
 
 @freezegun.freeze_time("2023-01-01")
 @unittest.mock.patch("time.monotonic")
-def test_is_down_with_set_alert_time(monotonic_mock, fake_fs):
+def test_is_down_with_reset_alert_timeout(monotonic_mock, fake_fs):
     monotonic_mock.return_value = 1000
     state = AlerterState()
     state.initialize()
     with state:
         monotonic_mock.return_value = 2000
-        state.set_alert_time()
+        state.reset_alert_timeout()
         monotonic_mock.return_value = 2180  # Three minutes have passed
         assert state.is_down() is False
         monotonic_mock.return_value = 2330  # Five and a half minutes have passed
@@ -99,7 +99,7 @@ def test_notify(monotonic_mock, fake_fs):
     state.initialize()
     with state:
         monotonic_mock.return_value = 2000
-        state.set_alert_time()
+        state.reset_alert_timeout()
         monotonic_mock.return_value = 2180  # Three minutes have passed
         assert state.is_down() is False
         monotonic_mock.return_value = 2330  # Five and a half minutes have passed
