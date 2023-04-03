@@ -56,7 +56,7 @@ class AlerterState:
         with open(config['watch']['data_file'], 'w') as f:
             json.dump(data, f)
 
-    def set_alert_time(self):
+    def reset_alert_timeout(self):
         self.data['alert_time'] = time.monotonic()
 
     def _set_notify_time(self):

@@ -9,5 +9,5 @@ app = Flask(__name__)
 def alive():
     # TODO Decide if we should validate the request.
     with AlerterState() as state:
-        state.set_alert_time()
+        state.reset_alert_timeout()
     return 'Success!'
