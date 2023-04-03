@@ -34,6 +34,7 @@ route:
     group_interval: 1m
     repeat_interval: 1m
 ```
+Note that `group_wait` should be set to `0s` so the alert starts firing right away.
 
 
 ## Run COS Alerter
