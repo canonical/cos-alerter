@@ -137,6 +137,10 @@ class AlerterState:
         )
         notify_thread.start()
 
+    def up_time(self):
+        """Return number of seconds that the daemon has been running."""
+        return time.monotonic() - self.data["start_time"]
+
 
 def send_notifications(title, body):
     """Send a notification to all receivers."""

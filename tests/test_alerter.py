@@ -77,6 +77,15 @@ def test_initialize(monotonic_mock, fake_fs):
 
 @freezegun.freeze_time("2023-01-01")
 @unittest.mock.patch("time.monotonic")
+def test_up_time(monotonic_mock, fake_fs):
+    monotonic_mock.return_value = 2000
+    state = AlerterState()
+    with state:
+        assert state.up_time() == 1000
+
+
+@freezegun.freeze_time("2023-01-01")
+@unittest.mock.patch("time.monotonic")
 def test_is_down_from_initialize(monotonic_mock, fake_fs):
     monotonic_mock.return_value = 1000
     state = AlerterState()
