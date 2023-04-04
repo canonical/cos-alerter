@@ -6,11 +6,8 @@ on:
       - main
 
 jobs:
-  tox-checks:
-    name: Tox Checks
-    needs:
-      - ci-ignore
-    if: ${{ needs.ci-ignore.outputs.files != '' }}
+  linting:
+    name: Linting
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -20,4 +17,38 @@ jobs:
       - name: Install Dependencies
         run: python3 -m pip install tox
       - name: Run Checks
-        run: tox
+        run: tox -e lint,static
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set Up Python
+        uses: actions/setup-python@v4
+      - name: Install Dependencies
+        run: python3 -m pip install tox
+      - name: Run Checks
+        run: tox -e test,slow-tests
+      - name: Upload .coverage
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage
+          path: .coverage
+  coverage:
+    name: Coverage
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set Up Python
+        uses: actions/setup-python@v4
+      - name: Install Dependencies
+        run: python3 -m pip install tox
+      - name: Download .coverage
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage
+      - name: Run Checks
+        run: tox -e coverage

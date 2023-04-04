@@ -40,6 +40,7 @@ def fake_fs(fs):
     return fs
 
 
+@pytest.mark.slow
 @unittest.mock.patch.object(apprise.Apprise, "add")
 @unittest.mock.patch.object(apprise.Apprise, "notify")
 def test_main(notify_mock, add_mock, fake_fs):
