@@ -22,7 +22,7 @@ receivers:
 ...
 - name: cos-alerter
   webhook_configs:
-  - url: http://192.168.122.118:5000/alive
+  - url: http://<cos-alerter-address>:8080/alive
 route:
   ...
   routes:
