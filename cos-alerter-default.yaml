@@ -19,3 +19,8 @@ notify:
 
   # When Alertmanager is down, the amount of time between notifications.
   repeat_interval: "1h"
+
+
+# The logging level of COS Alerter
+# Levels available: critical, error, warning, info, debug
+log_level: "info"
