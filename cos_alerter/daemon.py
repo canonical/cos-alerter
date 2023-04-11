@@ -10,11 +10,14 @@ import signal
 import sys
 import threading
 import time
+from typing import List, Optional
 
 import waitress
 
 from .alerter import AlerterState, config, send_test_notification
 from .server import app
+
+logger = logging.getLogger("cos_alerter.daemon")
 
 LOG_LEVEL_CHOICES = {
     "CRITICAL": logging.CRITICAL,
@@ -32,19 +35,19 @@ LOG_LEVEL_CHOICES = {
 
 def sigint(_, __):  # pragma: no cover
     """Signal handler to exit cleanly on SIGINT."""
-    logging.info("Received SIGINT.")
-    logging.debug("Exiting.")
+    logger.info("Received SIGINT.")
+    logger.debug("Exiting.")
     sys.exit()
 
 
 def sigusr1(_, __):  # pragma: no cover
     """Signal handler for SIGUSR1 which sends a test notification."""
-    logging.info("Received SIGUSR1.")
+    logger.info("Received SIGUSR1.")
     send_thread = threading.Thread(target=send_test_notification)
     send_thread.start()
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(args: List[str]) -> argparse.Namespace:
     """Parse the command line arguments."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -52,32 +55,41 @@ def parse_args() -> argparse.Namespace:
         choices=list(LOG_LEVEL_CHOICES),
         help='Logging level. Overrides config value "log_level"',
     )
-    return parser.parse_args()
+    return parser.parse_args(args=args)
 
 
-def main(run_for=None):
+def main(run_for: Optional[int] = None, argv: List[str] = sys.argv):
     """Main method for COS Alerter.
 
     Args:
         run_for: This argument is for testing purposes. If set, only run for "run_for" seconds.
+        argv: Can be used to override the cli args for testing purposes.
     """
-    args = parse_args()
+    args = parse_args(argv[1:])
 
     if args.log_level:
         log_level = LOG_LEVEL_CHOICES[args.log_level]
     else:
         log_level = LOG_LEVEL_CHOICES[config["log_level"]]
-    logfmt = "%(asctime)s:%(levelname)s:%(name)s:%(message)s"
-    logging.basicConfig(level=log_level, format=logfmt)
+    cos_logger = logging.getLogger("cos_alerter")
+    cos_logger.propagate = False
+    waitress_logger = logging.getLogger("waitress")
+    cos_logger.setLevel(level=log_level)
+    waitress_logger.setLevel(level=log_level)
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter("%(asctime)s:%(levelname)s:%(name)s:%(message)s")
+    handler.setFormatter(formatter)
+    cos_logger.addHandler(handler)
+    waitress_logger.addHandler(handler)
 
     # Initialize the COS Alerter state file
     AlerterState.initialize()
 
     # Observe signal handlers
-    try:
-        signal.signal(signal.SIGINT, sigint)  # pragma: no cover
-        signal.signal(signal.SIGUSR1, sigusr1)  # pragma: no cover
-        logging.debug("Signal handlers set.")
+    try:  # pragma: no cover
+        signal.signal(signal.SIGINT, sigint)
+        signal.signal(signal.SIGUSR1, sigusr1)
+        logger.debug("Signal handlers set.")
     except ValueError as e:
         # If we are not in the main thread, we can not start the signal handlers.
         # This is okay.
@@ -87,20 +99,23 @@ def main(run_for=None):
     # Start the web server.
     # Starting in a thread rather than a new process allows waitress to inherit the log level
     # from the daemon. It also facilitates communication over memory rather than files.
-    server_thread = threading.Thread(target=waitress.serve, args=(app,))
+    # clear_untrusted_proxy_headers is set to suppress a DeprecationWarning.
+    server_thread = threading.Thread(
+        target=waitress.serve, args=(app,), kwargs={"clear_untrusted_proxy_headers": True}
+    )
     server_thread.daemon = True  # Makes this thread exit when the main thread exits.
-    logging.info("Starting the web server thread.")
+    logger.info("Starting the web server thread.")
     server_thread.start()
 
     # Main loop
     state = AlerterState()
     while True:
         with state:
-            if run_for and state.up_time() >= run_for:
+            if run_for is not None and state.up_time() >= run_for:
                 return
-            logging.debug("Checking Alertmanager status.")
+            logger.debug("Checking Alertmanager status.")
             if state.is_down():
-                logging.debug("Alertmanager is down.")
+                logger.debug("Alertmanager is down.")
                 state.notify()
         time.sleep(1)
 

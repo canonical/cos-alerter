@@ -1,6 +1,7 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import logging
 import subprocess
 import threading
 import time
@@ -33,6 +34,7 @@ def fake_fs(fs):
                         "destinations": DESTINATIONS,
                         "repeat_interval": "4s",
                     },
+                    "log_level": "info",
                 }
             )
         )
@@ -44,7 +46,7 @@ def fake_fs(fs):
 @unittest.mock.patch.object(apprise.Apprise, "add")
 @unittest.mock.patch.object(apprise.Apprise, "notify")
 def test_main(notify_mock, add_mock, fake_fs):
-    main_thread = threading.Thread(target=main, kwargs={"run_for": 13})
+    main_thread = threading.Thread(target=main, kwargs={"run_for": 13, "argv": ["cos-alerter"]})
     try:
         main_thread.start()
         time.sleep(2)  # Should not be considered down yet.
@@ -60,3 +62,8 @@ def test_main(notify_mock, add_mock, fake_fs):
         assert notify_mock.call_count == 2
     finally:
         main_thread.join()
+
+
+def test_log_level_arg(fake_fs):
+    main(run_for=0, argv=["cos-alerter", "--log-level", "DEBUG"])
+    assert logging.getLogger("cos_alerter").getEffectiveLevel() == logging.DEBUG
