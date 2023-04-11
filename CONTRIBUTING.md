@@ -14,16 +14,16 @@
 * `pip install .`
 * `cos-alerter`
 
-## Run Tests
-
-* `pip install tox`
-* `tox`
-
 ## Run With Docker
 
 * Copy the contents of `cos-alerter-default.yaml` to `cos-alerter.yaml` and fill in with appropriate values.
 * `docker build . -t cos-alerter`
 * `docker run -p 8080:8080 --mount type=bind,source="$(pwd)"/cos-alerter.yaml,target=/etc/cos-alerter.yaml,readonly -it cos-alerter`
+
+## Run Tests
+
+* `pip install tox`
+* `tox`
 
 ## Build Packages
 
