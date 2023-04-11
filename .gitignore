@@ -2,6 +2,7 @@
 .tox
 build
 cos-alerter.yaml
+dist
 venv
 *.egg-info
 **/__pycache__

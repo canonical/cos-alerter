@@ -67,8 +67,8 @@ def main(run_for=None):
         log_level = LOG_LEVEL_CHOICES[args.log_level]
     else:
         log_level = LOG_LEVEL_CHOICES[config["log_level"]]
-    logging.basicConfig(level=log_level)
-    logging.getLogger("waitress").setLevel(log_level)
+    logfmt = "%(asctime)s:%(levelname)s:%(name)s:%(message)s"
+    logging.basicConfig(level=log_level, format=logfmt)
 
     # Initialize the COS Alerter state file
     AlerterState.initialize()
