@@ -14,23 +14,11 @@ from typing import List, Optional
 
 import waitress
 
-from .alerter import AlerterState, config, send_test_notification
+from .alerter import AlerterState, send_test_notification
+from .logging import LEVELS, init_logging
 from .server import app
 
 logger = logging.getLogger("cos_alerter.daemon")
-
-LOG_LEVEL_CHOICES = {
-    "CRITICAL": logging.CRITICAL,
-    "critical": logging.CRITICAL,
-    "ERROR": logging.ERROR,
-    "error": logging.ERROR,
-    "WARNING": logging.WARNING,
-    "warning": logging.WARNING,
-    "INFO": logging.INFO,
-    "info": logging.INFO,
-    "DEBUG": logging.DEBUG,
-    "debug": logging.DEBUG,
-}
 
 
 def sigint(_, __):  # pragma: no cover
@@ -52,7 +40,7 @@ def parse_args(args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--log-level",
-        choices=list(LOG_LEVEL_CHOICES),
+        choices=list(LEVELS),
         help='Logging level. Overrides config value "log_level"',
     )
     return parser.parse_args(args=args)
@@ -67,23 +55,7 @@ def main(run_for: Optional[int] = None, argv: List[str] = sys.argv):
     """
     args = parse_args(argv[1:])
 
-    if args.log_level:
-        log_level = LOG_LEVEL_CHOICES[args.log_level]
-    else:
-        log_level = LOG_LEVEL_CHOICES[config["log_level"]]
-    cos_logger = logging.getLogger("cos_alerter")
-    waitress_logger = logging.getLogger("waitress")
-    cos_logger.propagate = False
-    waitress_logger.propagate = False
-    cos_logger.setLevel(level=log_level)
-    waitress_logger.setLevel(level=log_level)
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter("%(asctime)s:%(levelname)s:%(name)s:%(message)s")
-    handler.setFormatter(formatter)
-    cos_logger.addHandler(handler)
-    waitress_logger.addHandler(handler)
-
-    # Initialize the COS Alerter state file
+    init_logging(args)
     AlerterState.initialize()
 
     # Observe signal handlers
