@@ -72,8 +72,9 @@ def main(run_for: Optional[int] = None, argv: List[str] = sys.argv):
     else:
         log_level = LOG_LEVEL_CHOICES[config["log_level"]]
     cos_logger = logging.getLogger("cos_alerter")
-    cos_logger.propagate = False
     waitress_logger = logging.getLogger("waitress")
+    cos_logger.propagate = False
+    waitress_logger.propagate = False
     cos_logger.setLevel(level=log_level)
     waitress_logger.setLevel(level=log_level)
     handler = logging.StreamHandler()
