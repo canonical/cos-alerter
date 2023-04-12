@@ -19,10 +19,23 @@ logger = logging.getLogger(__name__)
 class Config:
     """Representation of the config file."""
 
+    def __init__(self):
+        self.reload()
+
     def __getitem__(self, key):
         """Dict style access for config values."""
-        with open("/etc/cos-alerter.yaml", "rb") as f:
-            return yaml.safe_load(f)[key]
+        return self.data[key]
+
+    def reload(self):
+        """Reload config values from the disk."""
+        with open("/etc/cos-alerter.yaml", "r") as f:
+            self.data = yaml.safe_load(f)
+        self.data["watch"]["down_interval"] = durationpy.from_str(
+            self.data["watch"]["down_interval"]
+        ).total_seconds()
+        self.data["notify"]["repeat_interval"] = durationpy.from_str(
+            self.data["notify"]["repeat_interval"]
+        ).total_seconds()
 
 
 config = Config()
@@ -105,15 +118,14 @@ class AlerterState:
         """Determine if Alertmanager should be considered down based on the last alert."""
         if self.data["alert_time"] is None:
             return False
-        down_interval = durationpy.from_str(config["watch"]["down_interval"]).total_seconds()
-        return time.monotonic() - self.data["alert_time"] > down_interval
+        return time.monotonic() - self.data["alert_time"] > config["watch"]["down_interval"]
 
     def _recently_notified(self) -> bool:
         """Determine if a notification has been previously sent within the repeat interval."""
-        repeat_interval = durationpy.from_str(config["notify"]["repeat_interval"]).total_seconds()
         return (
             state["clients"][self.clientid]["notify_time"]
-            and not time.monotonic() - self.data["notify_time"] > repeat_interval
+            and not time.monotonic() - self.data["notify_time"]
+            > config["notify"]["repeat_interval"]
         )
 
     def _last_alert_datetime(self) -> datetime.datetime:

@@ -1,14 +1,28 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import copy
+
 import pytest
 import yaml
 from werkzeug.datastructures import MultiDict
 
-from cos_alerter.alerter import AlerterState
+from cos_alerter.alerter import AlerterState, config
 from cos_alerter.server import app
 
 PARAMS = {"clientid": "client0"}
+CONFIG = {
+    "watch": {
+        "down_interval": "5m",
+        "wait_for_first_connection": True,
+        "clients": ["client0"],
+    },
+    "notify": {
+        "destinations": [],
+        "repeat_interval": "1h",
+    },
+    "log_level": "info",
+}
 
 
 @pytest.fixture
@@ -19,14 +33,9 @@ def flask_client():
 @pytest.fixture
 def fake_fs(fs):
     fs.create_file("/etc/cos-alerter.yaml")
-    conf = {
-        "watch": {
-            "wait_for_first_connection": True,
-            "clients": ["client0"],
-        }
-    }
     with open("/etc/cos-alerter.yaml", "w") as f:
-        f.write(yaml.dump(conf))
+        f.write(yaml.dump(CONFIG))
+    config.reload()
     return fs
 
 
@@ -63,14 +72,11 @@ def test_wrong_clientid(flask_client, fake_fs, state_init):
 
 
 def test_duplicate_clientid(flask_client, fake_fs, state_init):
-    conf = {
-        "watch": {
-            "wait_for_first_connection": True,
-            "clients": ["client0", "client1"],
-        }
-    }
+    conf = copy.deepcopy(CONFIG)
+    conf["watch"]["clients"].append("client1")
     with open("/etc/cos-alerter.yaml", "w") as f:
         f.write(yaml.dump(conf))
+    config.reload()
     params = MultiDict(
         [
             ("clientid", "client0"),

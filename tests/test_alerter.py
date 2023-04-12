@@ -35,6 +35,7 @@ def fake_fs(fs):
     fs.create_file("/etc/cos-alerter.yaml")
     with open("/etc/cos-alerter.yaml", "w") as f:
         f.write(yaml.dump(CONFIG))
+    config.reload()
     return fs
 
 
@@ -44,7 +45,7 @@ def assert_notifications(notify_mock, add_mock, title, body):
 
 
 def test_config_gets_item(fake_fs):
-    assert config["watch"]["down_interval"] == "5m"
+    assert config["watch"]["down_interval"] == 300
 
 
 @freezegun.freeze_time("2023-01-01")
@@ -105,6 +106,7 @@ def test_is_down_with_wait_for_first_connection(monotonic_mock, fake_fs):
     conf["watch"]["wait_for_first_connection"] = True
     with open("/etc/cos-alerter.yaml", "w") as f:
         yaml.dump(conf, f)
+    config.reload()
     monotonic_mock.return_value = 1000
     AlerterState.initialize()
     state = AlerterState(clientid="client0")

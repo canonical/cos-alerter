@@ -11,6 +11,7 @@ import apprise
 import pytest
 import yaml
 
+from cos_alerter.alerter import config
 from cos_alerter.daemon import main
 
 DESTINATIONS = [
@@ -39,6 +40,7 @@ def fake_fs(fs):
                 }
             )
         )
+    config.reload()
     return fs
 
 
@@ -63,8 +65,10 @@ def test_main(notify_mock, add_mock, fake_fs):
     finally:
         main_thread.join()
 
+
 # TODO We need a test here for multiple clients. The problem is that the waitress thread does not
 # close when the previous test ends and so the socket is held open.
+
 
 def test_log_level_arg(fake_fs):
     main(run_for=0, argv=["cos-alerter", "--log-level", "DEBUG"])
