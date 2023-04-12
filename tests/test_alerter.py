@@ -1,7 +1,6 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-import json
 import textwrap
 import threading
 import unittest.mock
@@ -11,45 +10,31 @@ import freezegun
 import pytest
 import yaml
 
-from cos_alerter.alerter import AlerterState, config, send_test_notification
+from cos_alerter.alerter import AlerterState, config, send_test_notification, up_time
 
 DESTINATIONS = [
     "mailtos://user:pass@domain/?to=example-0@example.com,example-1@example.com",
     "slack://xoxb-1234-1234-4ddbc191d40ee098cbaae6f3523ada2d/#general",
 ]
 
+CONFIG = {
+    "watch": {
+        "down_interval": "5m",
+        "wait_for_first_connection": False,
+        "clients": ["client0"],
+    },
+    "notify": {
+        "destinations": DESTINATIONS,
+        "repeat_interval": "1h",
+    },
+}
+
 
 @pytest.fixture
 def fake_fs(fs):
     fs.create_file("/etc/cos-alerter.yaml")
     with open("/etc/cos-alerter.yaml", "w") as f:
-        f.write(
-            yaml.dump(
-                {
-                    "watch": {
-                        "data_file": "/run/cos-alerter-data",
-                        "down_interval": "5m",
-                    },
-                    "notify": {
-                        "destinations": DESTINATIONS,
-                        "repeat_interval": "1h",
-                    },
-                }
-            )
-        )
-
-    fs.create_file("/run/cos-alerter-data")
-    with open("/run/cos-alerter-data", "w") as f:
-        json.dump(
-            {
-                "start_date": 1672531200.0,
-                "start_time": 1000,
-                "alert_time": 1000,
-                "notify_time": None,
-            },
-            f,
-        )
-
+        f.write(yaml.dump(CONFIG))
     return fs
 
 
@@ -59,18 +44,18 @@ def assert_notifications(notify_mock, add_mock, title, body):
 
 
 def test_config_gets_item(fake_fs):
-    assert config["watch"]["data_file"] == "/run/cos-alerter-data"
+    assert config["watch"]["down_interval"] == "5m"
 
 
 @freezegun.freeze_time("2023-01-01")
 @unittest.mock.patch("time.monotonic")
 def test_initialize(monotonic_mock, fake_fs):
     monotonic_mock.return_value = 1000
-    state = AlerterState()
-    state.initialize()
+    AlerterState.initialize()
+    state = AlerterState(clientid="client0")
     with state:
-        assert state.data["start_date"] == 1672531200.0
-        assert state.data["start_time"] == 1000
+        assert state.start_date == 1672531200.0
+        assert state.start_time == 1000
         assert state.data["alert_time"] == 1000
         assert state.data["notify_time"] is None
 
@@ -78,18 +63,18 @@ def test_initialize(monotonic_mock, fake_fs):
 @freezegun.freeze_time("2023-01-01")
 @unittest.mock.patch("time.monotonic")
 def test_up_time(monotonic_mock, fake_fs):
+    monotonic_mock.return_value = 1000
+    AlerterState.initialize()
     monotonic_mock.return_value = 2000
-    state = AlerterState()
-    with state:
-        assert state.up_time() == 1000
+    assert up_time() == 1000
 
 
 @freezegun.freeze_time("2023-01-01")
 @unittest.mock.patch("time.monotonic")
 def test_is_down_from_initialize(monotonic_mock, fake_fs):
     monotonic_mock.return_value = 1000
-    state = AlerterState()
-    state.initialize()
+    AlerterState.initialize()
+    state = AlerterState(clientid="client0")
     with state:
         monotonic_mock.return_value = 1180  # Three minutes have passed
         assert state.is_down() is False
@@ -101,8 +86,8 @@ def test_is_down_from_initialize(monotonic_mock, fake_fs):
 @unittest.mock.patch("time.monotonic")
 def test_is_down_with_reset_alert_timeout(monotonic_mock, fake_fs):
     monotonic_mock.return_value = 1000
-    state = AlerterState()
-    state.initialize()
+    AlerterState.initialize()
+    state = AlerterState(clientid="client0")
     with state:
         monotonic_mock.return_value = 2000
         state.reset_alert_timeout()
@@ -114,10 +99,31 @@ def test_is_down_with_reset_alert_timeout(monotonic_mock, fake_fs):
 
 @freezegun.freeze_time("2023-01-01")
 @unittest.mock.patch("time.monotonic")
+def test_is_down_with_wait_for_first_connection(monotonic_mock, fake_fs):
+    with open("/etc/cos-alerter.yaml") as f:
+        conf = yaml.safe_load(f)
+    conf["watch"]["wait_for_first_connection"] = True
+    with open("/etc/cos-alerter.yaml", "w") as f:
+        yaml.dump(conf, f)
+    monotonic_mock.return_value = 1000
+    AlerterState.initialize()
+    state = AlerterState(clientid="client0")
+    with state:
+        monotonic_mock.return_value = 1500
+        assert state.is_down() is False  # 6 minutes have passes but we have not started counting.
+        state.reset_alert_timeout()
+        monotonic_mock.return_value = 1680
+        assert state.is_down() is False  # Three more minutes.
+        monotonic_mock.return_value = 1830
+        assert state.is_down() is True  # 5.5 minutes since reset_alert_timeout() was called.
+
+
+@freezegun.freeze_time("2023-01-01")
+@unittest.mock.patch("time.monotonic")
 def test_is_down(monotonic_mock, fake_fs):
     monotonic_mock.return_value = 1000
-    state = AlerterState()
-    state.initialize()
+    AlerterState.initialize()
+    state = AlerterState(clientid="client0")
     with state:
         monotonic_mock.return_value = 2000
         state.reset_alert_timeout()
@@ -131,8 +137,8 @@ def test_is_down(monotonic_mock, fake_fs):
 @unittest.mock.patch("time.monotonic")
 def test_recently_notified(monotonic_mock, fake_fs):
     monotonic_mock.return_value = 1000
-    state = AlerterState()
-    state.initialize()
+    AlerterState.initialize()
+    state = AlerterState(clientid="client0")
     with state:
         state._set_notify_time()
         monotonic_mock.return_value = 2800  # 30 minutes have passed
@@ -147,7 +153,8 @@ def test_recently_notified(monotonic_mock, fake_fs):
 @unittest.mock.patch.object(apprise.Apprise, "notify")
 def test_notify(notify_mock, add_mock, monotonic_mock, fake_fs):
     monotonic_mock.return_value = 1000
-    state = AlerterState()
+    AlerterState.initialize()
+    state = AlerterState(clientid="client0")
 
     with state:
         state.notify()
@@ -160,7 +167,7 @@ def test_notify(notify_mock, add_mock, monotonic_mock, fake_fs):
         title="**Alertmanager is Down!**",
         body=textwrap.dedent(
             """
-            Your Alertmanager instance seems to be down!
+            Your Alertmanager instance: client0 seems to be down!
             It has not alerted COS-Alerter since 2023-01-01T00:00:00+00:00 UTC.
             """
         ),

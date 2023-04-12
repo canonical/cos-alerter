@@ -27,8 +27,9 @@ def fake_fs(fs):
             yaml.dump(
                 {
                     "watch": {
-                        "data_file": "/run/cos-alerter-data",
                         "down_interval": "4s",
+                        "wait_for_first_connection": False,
+                        "clients": ["client0"],
                     },
                     "notify": {
                         "destinations": DESTINATIONS,
@@ -38,7 +39,6 @@ def fake_fs(fs):
                 }
             )
         )
-    fs.create_file("/run/cos-alerter-data")
     return fs
 
 
@@ -51,8 +51,8 @@ def test_main(notify_mock, add_mock, fake_fs):
         main_thread.start()
         time.sleep(2)  # Should not be considered down yet.
         notify_mock.assert_not_called()
-        subprocess.call(["curl", "-X", "POST", "http://localhost:8080/alive"])
-        time.sleep(2)  # Would be considered down but we just sent an alive call.
+        subprocess.call(["curl", "-X", "POST", "http://localhost:8080/alive?clientid=client0"])
+        time.sleep(3)  # Would be considered down but we just sent an alive call.
         notify_mock.assert_not_called()
         time.sleep(3)  # It has been > 4 seconds since we last alerted so it should be down.
         notify_mock.assert_called()
@@ -63,6 +63,8 @@ def test_main(notify_mock, add_mock, fake_fs):
     finally:
         main_thread.join()
 
+# TODO We need a test here for multiple clients. The problem is that the waitress thread does not
+# close when the previous test ends and so the socket is held open.
 
 def test_log_level_arg(fake_fs):
     main(run_for=0, argv=["cos-alerter", "--log-level", "DEBUG"])
