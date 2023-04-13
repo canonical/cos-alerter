@@ -68,6 +68,7 @@ def main(run_for: Optional[int] = None, argv: List[str] = sys.argv):
     """
     args = parse_args(argv[1:])
 
+    config.reload()
     init_logging(args)
     AlerterState.initialize()
 
