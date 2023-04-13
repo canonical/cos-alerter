@@ -14,9 +14,9 @@ requires-python = ">=3.8"
 classifiers = [
   "Programming Language :: Python",
   "License :: OSI Approved :: Apache Software License",
-  "Operating System :: OS Independent",
+  "Operating System :: POSIX",
   "Topic :: System :: Monitoring",
-  "Development Status :: 2 - Pre-Alpha",
+  "Development Status :: 3 - Alpha",
 ]
 dependencies = [
   "apprise~=1.3",

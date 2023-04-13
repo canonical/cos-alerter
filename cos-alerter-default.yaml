@@ -4,8 +4,15 @@ watch:
   # This should be longer than the repeat_interval set in Alertmanager.
   down_interval: "5m"
 
-  # The location of the file which stores temporary data for COS Alerter.
-  data_file: "/run/cos-alerter-data.json"
+  # When set to true, Alertmanager will not be considered down until it has received at least one alert.
+  # This allows you to configure COS Alerter before configuring Alertmanager.
+  wait_for_first_connection: true
+
+  # The list of Alertmanager instances we are monitoring. Alertmanager instances should be
+  # configured with the clientid=<client> parameter.
+  clients:
+    - "client0"
+    - "client1"
 
 notify:
 

@@ -14,7 +14,7 @@ from typing import List, Optional
 
 import waitress
 
-from .alerter import AlerterState, send_test_notification
+from .alerter import AlerterState, config, send_test_notification, up_time
 from .logging import LEVELS, init_logging
 from .server import app
 
@@ -46,6 +46,19 @@ def parse_args(args: List[str]) -> argparse.Namespace:
     return parser.parse_args(args=args)
 
 
+def client_loop(clientid):
+    """Run the main loop for the specified client."""
+    # Main loop
+    state = AlerterState(clientid=clientid)
+    while True:
+        with state:
+            logger.debug("Checking Alertmanager status.")
+            if state.is_down():
+                logger.debug("Alertmanager is down.")
+                state.notify()
+        time.sleep(1)
+
+
 def main(run_for: Optional[int] = None, argv: List[str] = sys.argv):
     """Main method for COS Alerter.
 
@@ -55,6 +68,7 @@ def main(run_for: Optional[int] = None, argv: List[str] = sys.argv):
     """
     args = parse_args(argv[1:])
 
+    config.reload()
     init_logging(args)
     AlerterState.initialize()
 
@@ -80,16 +94,15 @@ def main(run_for: Optional[int] = None, argv: List[str] = sys.argv):
     logger.info("Starting the web server thread.")
     server_thread.start()
 
-    # Main loop
-    state = AlerterState()
+    for clientid in config["watch"]["clients"]:
+        client_thread = threading.Thread(target=client_loop, args=(clientid,))
+        client_thread.daemon = True  # Makes this thread exit when the main thread exits.
+        logger.info("Starting worker thread for client: %s", clientid)
+        client_thread.start()
+
     while True:
-        with state:
-            if run_for is not None and state.up_time() >= run_for:
-                return
-            logger.debug("Checking Alertmanager status.")
-            if state.is_down():
-                logger.debug("Alertmanager is down.")
-                state.notify()
+        if run_for is not None and up_time() >= run_for:
+            return
         time.sleep(1)
 
 

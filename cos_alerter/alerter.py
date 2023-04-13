@@ -4,8 +4,6 @@
 """Main logic for COS Alerter."""
 
 import datetime
-import fcntl
-import json
 import logging
 import textwrap
 import threading
@@ -23,11 +21,22 @@ class Config:
 
     def __getitem__(self, key):
         """Dict style access for config values."""
-        with open("/etc/cos-alerter.yaml", "rb") as f:
-            return yaml.safe_load(f)[key]
+        return self.data[key]
+
+    def reload(self):
+        """Reload config values from the disk."""
+        with open("/etc/cos-alerter.yaml", "r") as f:
+            self.data = yaml.safe_load(f)
+        self.data["watch"]["down_interval"] = durationpy.from_str(
+            self.data["watch"]["down_interval"]
+        ).total_seconds()
+        self.data["notify"]["repeat_interval"] = durationpy.from_str(
+            self.data["notify"]["repeat_interval"]
+        ).total_seconds()
 
 
 config = Config()
+state = {}
 
 
 class AlerterState:
@@ -37,16 +46,21 @@ class AlerterState:
     threads.
     """
 
+    def __init__(self, clientid: str):
+        self.clientid = (
+            clientid  # Needed in addition to `self.data` for logging and notifications.
+        )
+        self.data = state["clients"][clientid]
+        self.start_date = state["start_date"]
+        self.start_time = state["start_time"]
+
     def __enter__(self):
         """Enter method for the context manager.
 
         Acquires an exclusive lock on the backend file and loads it in to memory.
         """
-        logger.debug("Acquiring lock for state file.")
-        self.fh = open(config["watch"]["data_file"], "r+")
-        fcntl.lockf(self.fh, fcntl.LOCK_EX)
-        logger.debug("Reading state file.")
-        self.data = json.load(self.fh)
+        logger.debug("Acquiring lock for %s.", self.clientid)
+        self.data["lock"].acquire()
         return self
 
     def __exit__(self, _, __, ___):
@@ -54,19 +68,12 @@ class AlerterState:
 
         Dumps the new state to disk then releases the lock.
         """
-        logger.debug("Writing state file.")
-        self.fh.seek(0)
-        json.dump(self.data, self.fh)
-        self.fh.truncate()
-        logger.debug("Releasing lock for state file.")
-        fcntl.lockf(self.fh, fcntl.LOCK_UN)
-        self.fh.close()
+        logger.debug("Releasing lock for %s.", self.clientid)
+        self.data["lock"].release()
 
     @staticmethod
     def initialize():
-        """Initialize the backend data file.
-
-        This method sets all the initial values.
+        """Initialize the global state object.
 
         Note: This method does not do any locking so do not call it when there might be other
         threads running.
@@ -74,25 +81,30 @@ class AlerterState:
         logger.info("Initializing COS Alerter.")
         current_date = datetime.datetime.now(datetime.timezone.utc)
         current_time = time.monotonic()
-        data = {
-            # The actual date and time that COS Alerter was started.
-            "start_date": datetime.datetime.timestamp(current_date),
-            # The time according to the monotonic clock that COS Alerter was started.
-            "start_time": current_time,
-            # The last time we received an alert from Alertmanager.
-            # This is set to current time instead of None so that the logic a bit more simple
-            # when checking if Alertmanager is down.
-            "alert_time": current_time,
-            # The last time we sent out notifications.
-            "notify_time": None,
-        }
+        state["start_date"] = datetime.datetime.timestamp(current_date)
+        state["start_time"] = current_time
 
-        with open(config["watch"]["data_file"], "w") as f:
-            json.dump(data, f)
+        # state["clients"] should be of the form:
+        # {
+        #     <client_id>: {
+        #         "lock": <client_lock>,
+        #         "alert_time": <alert_time>,
+        #         "notify_time": <notify_time>,
+        #     },
+        #     ...
+        # }
+        state["clients"] = {}
+        for client in config["watch"]["clients"]:
+            alert_time = None if config["watch"]["wait_for_first_connection"] else current_time
+            state["clients"][client] = {
+                "lock": threading.Lock(),
+                "alert_time": alert_time,
+                "notify_time": None,
+            }
 
     def reset_alert_timeout(self):
         """Set the "last alert time" to right now."""
-        logger.debug("Resetting alert timeout.")
+        logger.debug("Resetting alert timeout for %s.", self.clientid)
         self.data["alert_time"] = time.monotonic()
 
     def _set_notify_time(self):
@@ -101,15 +113,16 @@ class AlerterState:
 
     def is_down(self) -> bool:
         """Determine if Alertmanager should be considered down based on the last alert."""
-        down_interval = durationpy.from_str(config["watch"]["down_interval"]).total_seconds()
-        return time.monotonic() - self.data["alert_time"] > down_interval
+        if self.data["alert_time"] is None:
+            return False
+        return time.monotonic() - self.data["alert_time"] > config["watch"]["down_interval"]
 
     def _recently_notified(self) -> bool:
         """Determine if a notification has been previously sent within the repeat interval."""
-        repeat_interval = durationpy.from_str(config["notify"]["repeat_interval"]).total_seconds()
         return (
-            self.data["notify_time"]
-            and not time.monotonic() - self.data["notify_time"] > repeat_interval
+            state["clients"][self.clientid]["notify_time"]
+            and not time.monotonic() - self.data["notify_time"]
+            > config["notify"]["repeat_interval"]
         )
 
     def _last_alert_datetime(self) -> datetime.datetime:
@@ -118,9 +131,7 @@ class AlerterState:
         Returns:
             A datetime.datetime object representing the time of the last alert.
         """
-        actual_alert_timestamp = (self.data["alert_time"] - self.data["start_time"]) + self.data[
-            "start_date"
-        ]
+        actual_alert_timestamp = (self.data["alert_time"] - self.start_time) + self.start_date
         return datetime.datetime.fromtimestamp(actual_alert_timestamp, datetime.timezone.utc)
 
     def notify(self):
@@ -130,13 +141,13 @@ class AlerterState:
             logger.debug("Recently notified. Skipping.")
             return
 
-        logger.info("Sending notifications.")
+        logger.info("Sending notifications for %s.", self.clientid)
         self._set_notify_time()
         last_alert_time = self._last_alert_datetime().isoformat()
         title = "**Alertmanager is Down!**"
         body = textwrap.dedent(
             f"""
-            Your Alertmanager instance seems to be down!
+            Your Alertmanager instance: {self.clientid} seems to be down!
             It has not alerted COS-Alerter since {last_alert_time} UTC.
             """
         )
@@ -148,12 +159,13 @@ class AlerterState:
         )
         notify_thread.start()
 
-    def up_time(self):
-        """Return number of seconds that the daemon has been running."""
-        return time.monotonic() - self.data["start_time"]
+
+def up_time():
+    """Return number of seconds that the daemon has been running."""
+    return time.monotonic() - state["start_time"]
 
 
-def send_notifications(title, body):
+def send_notifications(title: str, body: str):
     """Send a notification to all receivers."""
     # TODO: Since this is run in its own thread, we have to make sure we properly
     # log failures here.
