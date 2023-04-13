@@ -1,8 +1,5 @@
-FROM python:3.11
-ADD ./cos_alerter /root/cos_alerter
-ADD ./pyproject.toml /root/
-ADD ./LICENSE /root/
-ADD ./README.md /root/
-ADD ./cos-alerter-default.yaml /etc/cos-alerter.yaml
-RUN pip install /root
+FROM ubuntu:22.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y python3-pip && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN pip install cos-alerter
 CMD ["cos-alerter"]
