@@ -15,10 +15,18 @@
 * `cos-alerter`
 
 ## Run With Docker
+Prepare the image:
+```shell
+rockcraft pack
+skopeo --insecure-policy copy oci-archive:cos-alerter_0.2.0_amd64.rock docker-daemon:cos-alerter:0.2.0
+```
 
-* Copy the contents of `cos-alerter-default.yaml` to `cos-alerter.yaml` and fill in with appropriate values.
-* `docker build . -t cos-alerter`
-* `docker run -p 8080:8080 --mount type=bind,source="$(pwd)"/cos-alerter.yaml,target=/etc/cos-alerter.yaml,readonly -it cos-alerter`
+Run:
+```shell
+cp cos-alerter.sample.yaml cos-alerter.yaml
+# Update cos-alerter.yaml with appropriate values
+docker run -p 8080:8080 --rm --mount type=bind,source="$(pwd)"/cos-alerter.yaml,target=/etc/cos-alerter.yaml,readonly -it cos-alerter:0.2.0
+```
 
 ## Run Tests
 
