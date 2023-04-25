@@ -6,6 +6,7 @@
 
 import argparse
 import logging
+from pathlib import Path
 import signal
 import sys
 import threading
@@ -43,6 +44,11 @@ def parse_args(args: List[str]) -> argparse.Namespace:
         choices=list(LEVELS),
         help='Logging level. Overrides config value "log_level"',
     )
+    parser.add_argument(
+        "--config",
+        required=False,
+        help='Path to config file. Defaults to /etc/cos-alerter.yaml'
+    )
     return parser.parse_args(args=args)
 
 
@@ -68,6 +74,8 @@ def main(run_for: Optional[int] = None, argv: List[str] = sys.argv):
     """
     args = parse_args(argv[1:])
 
+    if args.config:
+        config.set_path(Path(args.config))
     config.reload()
     init_logging(args)
     AlerterState.initialize()

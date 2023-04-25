@@ -5,6 +5,7 @@
 
 import datetime
 import logging
+from pathlib import Path
 import textwrap
 import threading
 import time
@@ -18,14 +19,20 @@ logger = logging.getLogger(__name__)
 
 class Config:
     """Representation of the config file."""
+    def __init__(self, path: Path = Path("/etc/cos-alerter.yaml")):
+        """Set the config file path."""
+        self.set_path(path)
 
     def __getitem__(self, key):
         """Dict style access for config values."""
         return self.data[key]
 
+    def set_path(self, path: Path):
+        self.path = path
+
     def reload(self):
         """Reload config values from the disk."""
-        with open("/etc/cos-alerter.yaml", "r") as f:
+        with open(self.path, "r") as f:
             self.data = yaml.safe_load(f)
         self.data["watch"]["down_interval"] = durationpy.from_str(
             self.data["watch"]["down_interval"]
