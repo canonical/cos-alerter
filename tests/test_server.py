@@ -63,6 +63,10 @@ def test_alive_updates_time(flask_client, fake_fs, state_init):
         assert state.data["alert_time"] > state.start_time
 
 
+def test_metrics_succeeds(flask_client, fake_fs, state_init):
+    assert flask_client.get("/metrics").status_code == 200
+
+
 def test_no_clientid(flask_client, fake_fs, state_init):
     assert flask_client.post("/alive").status_code == 400
 

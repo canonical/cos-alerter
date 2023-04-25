@@ -6,10 +6,12 @@
 import logging
 
 from flask import Flask, request
+from prometheus_flask_exporter import PrometheusMetrics
 
 from .alerter import AlerterState, config
 
 app = Flask(__name__)
+metrics = PrometheusMetrics(app)
 logger = logging.getLogger(__name__)
 
 
