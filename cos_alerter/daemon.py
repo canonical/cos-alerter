@@ -6,11 +6,11 @@
 
 import argparse
 import logging
-from pathlib import Path
 import signal
 import sys
 import threading
 import time
+from pathlib import Path
 from typing import List, Optional
 
 import waitress
@@ -47,7 +47,7 @@ def parse_args(args: List[str]) -> argparse.Namespace:
     parser.add_argument(
         "--config",
         required=False,
-        help='Path to config file. Defaults to /etc/cos-alerter.yaml'
+        help="Path to config file. Defaults to /etc/cos-alerter.yaml",
     )
     return parser.parse_args(args=args)
 

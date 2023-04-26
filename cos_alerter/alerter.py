@@ -5,10 +5,10 @@
 
 import datetime
 import logging
-from pathlib import Path
 import textwrap
 import threading
 import time
+from pathlib import Path
 
 import apprise
 import durationpy
@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 
 class Config:
     """Representation of the config file."""
+
     def __init__(self, path: Path = Path("/etc/cos-alerter.yaml")):
-        """Set the config file path."""
         self.set_path(path)
 
     def __getitem__(self, key):
@@ -28,6 +28,7 @@ class Config:
         return self.data[key]
 
     def set_path(self, path: Path):
+        """Set the config file path."""
         self.path = path
 
     def reload(self):
