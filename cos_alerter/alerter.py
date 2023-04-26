@@ -20,9 +20,6 @@ logger = logging.getLogger(__name__)
 class Config:
     """Representation of the config file."""
 
-    def __init__(self, path: Path = Path("/etc/cos-alerter.yaml")):
-        self.set_path(path)
-
     def __getitem__(self, key):
         """Dict style access for config values."""
         return self.data[key]

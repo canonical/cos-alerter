@@ -47,6 +47,7 @@ def parse_args(args: List[str]) -> argparse.Namespace:
     parser.add_argument(
         "--config",
         required=False,
+        default="/etc/cos-alerter.yaml",
         help="Path to config file. Defaults to /etc/cos-alerter.yaml",
     )
     return parser.parse_args(args=args)
@@ -74,8 +75,7 @@ def main(run_for: Optional[int] = None, argv: List[str] = sys.argv):
     """
     args = parse_args(argv[1:])
 
-    if args.config:
-        config.set_path(Path(args.config))
+    config.set_path(Path(args.config))
     config.reload()
     init_logging(args)
     AlerterState.initialize()
