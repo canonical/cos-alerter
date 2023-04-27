@@ -37,9 +37,6 @@ cos-alerter = "cos_alerter.daemon:main"
 [tool.black]
 line-length = 99
 
-[tool.isort]
-profile = "black"
-
 [tool.ruff]
 line-length = 99
 extend-exclude = ["__pycache__", "*.egg_info"]
