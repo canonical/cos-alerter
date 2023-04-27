@@ -2,6 +2,7 @@
 # See LICENSE file for licensing details.
 
 import copy
+from pathlib import Path
 
 import pytest
 import yaml
@@ -35,6 +36,7 @@ def fake_fs(fs):
     fs.create_file("/etc/cos-alerter.yaml")
     with open("/etc/cos-alerter.yaml", "w") as f:
         f.write(yaml.dump(CONFIG))
+    config.set_path(Path("/etc/cos-alerter.yaml"))
     config.reload()
     return fs
 

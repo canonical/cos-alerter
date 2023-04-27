@@ -6,6 +6,7 @@ import subprocess
 import threading
 import time
 import unittest.mock
+from pathlib import Path
 
 import apprise
 import pytest
@@ -40,6 +41,7 @@ def fake_fs(fs):
                 }
             )
         )
+    config.set_path(Path("/etc/cos-alerter.yaml"))
     config.reload()
     return fs
 
