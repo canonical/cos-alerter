@@ -10,7 +10,6 @@ import signal
 import sys
 import threading
 import time
-from pathlib import Path
 from typing import List, Optional
 
 import waitress
@@ -75,7 +74,7 @@ def main(run_for: Optional[int] = None, argv: List[str] = sys.argv):
     """
     args = parse_args(argv[1:])
 
-    config.set_path(Path(args.config))
+    config.set_path(args.config)
     config.reload()
     init_logging(args)
     AlerterState.initialize()

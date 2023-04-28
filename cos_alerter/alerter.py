@@ -24,9 +24,9 @@ class Config:
         """Dict style access for config values."""
         return self.data[key]
 
-    def set_path(self, path: Path):
+    def set_path(self, path: str):
         """Set the config file path."""
-        self.path = path
+        self.path = Path(path)
 
     def reload(self):
         """Reload config values from the disk."""

@@ -4,7 +4,6 @@
 import textwrap
 import threading
 import unittest.mock
-from pathlib import Path
 
 import apprise
 import freezegun
@@ -36,7 +35,7 @@ def fake_fs(fs):
     fs.create_file("/etc/cos-alerter.yaml")
     with open("/etc/cos-alerter.yaml", "w") as f:
         f.write(yaml.dump(CONFIG))
-    config.set_path(Path("/etc/cos-alerter.yaml"))
+    config.set_path("/etc/cos-alerter.yaml")
     config.reload()
     return fs
 
