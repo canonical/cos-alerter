@@ -50,9 +50,6 @@ per-file-ignores = {"tests/*" = ["D100","D101","D102","D103"]}
 [tool.ruff.pydocstyle]
 convention = "google"
 
-[tool.ruff.mccabe]
-max-complexity = 10
-
 [tool.pyright]
 include = ["cos_alerter"]
 pythonVersion = "3.8"
