@@ -8,6 +8,7 @@ import logging
 import textwrap
 import threading
 import time
+from pathlib import Path
 
 import apprise
 import durationpy
@@ -23,9 +24,13 @@ class Config:
         """Dict style access for config values."""
         return self.data[key]
 
+    def set_path(self, path: str):
+        """Set the config file path."""
+        self.path = Path(path)
+
     def reload(self):
         """Reload config values from the disk."""
-        with open("/etc/cos-alerter.yaml", "r") as f:
+        with open(self.path, "r") as f:
             self.data = yaml.safe_load(f)
         self.data["watch"]["down_interval"] = durationpy.from_str(
             self.data["watch"]["down_interval"]

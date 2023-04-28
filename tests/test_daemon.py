@@ -40,6 +40,7 @@ def fake_fs(fs):
                 }
             )
         )
+    config.set_path("/etc/cos-alerter.yaml")
     config.reload()
     return fs
 

@@ -43,6 +43,12 @@ def parse_args(args: List[str]) -> argparse.Namespace:
         choices=list(LEVELS),
         help='Logging level. Overrides config value "log_level"',
     )
+    parser.add_argument(
+        "--config",
+        required=False,
+        default="/etc/cos-alerter.yaml",
+        help="Path to config file. Defaults to /etc/cos-alerter.yaml",
+    )
     return parser.parse_args(args=args)
 
 
@@ -68,6 +74,7 @@ def main(run_for: Optional[int] = None, argv: List[str] = sys.argv):
     """
     args = parse_args(argv[1:])
 
+    config.set_path(args.config)
     config.reload()
     init_logging(args)
     AlerterState.initialize()

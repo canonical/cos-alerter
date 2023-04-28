@@ -35,6 +35,7 @@ def fake_fs(fs):
     fs.create_file("/etc/cos-alerter.yaml")
     with open("/etc/cos-alerter.yaml", "w") as f:
         f.write(yaml.dump(CONFIG))
+    config.set_path("/etc/cos-alerter.yaml")
     config.reload()
     return fs
 
