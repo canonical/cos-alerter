@@ -21,8 +21,7 @@ DESTINATIONS = [
 
 
 @pytest.fixture
-def fake_fs(fs):
-    fs.create_file("/etc/cos-alerter.yaml")
+def mock_fs(fake_fs):
     with open("/etc/cos-alerter.yaml", "w") as f:
         f.write(
             yaml.dump(
@@ -42,13 +41,13 @@ def fake_fs(fs):
         )
     config.set_path("/etc/cos-alerter.yaml")
     config.reload()
-    return fs
+    return fake_fs
 
 
 @pytest.mark.slow
 @unittest.mock.patch.object(apprise.Apprise, "add")
 @unittest.mock.patch.object(apprise.Apprise, "notify")
-def test_main(notify_mock, add_mock, fake_fs):
+def test_main(notify_mock, add_mock, mock_fs):
     main_thread = threading.Thread(target=main, kwargs={"run_for": 13, "argv": ["cos-alerter"]})
     try:
         main_thread.start()
@@ -71,6 +70,6 @@ def test_main(notify_mock, add_mock, fake_fs):
 # close when the previous test ends and so the socket is held open.
 
 
-def test_log_level_arg(fake_fs):
+def test_log_level_arg(mock_fs):
     main(run_for=0, argv=["cos-alerter", "--log-level", "DEBUG"])
     assert logging.getLogger("cos_alerter").getEffectiveLevel() == logging.DEBUG

@@ -5,9 +5,11 @@
 
 import datetime
 import logging
+import os
 import textwrap
 import threading
 import time
+import typing
 from pathlib import Path
 
 import apprise
@@ -30,14 +32,33 @@ class Config:
 
     def reload(self):
         """Reload config values from the disk."""
-        with open(self.path, "r") as f:
+        with open(
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), "config-defaults.yaml")
+        ) as f:
             self.data = yaml.safe_load(f)
+        with open(self.path, "r") as f:
+            user_data = yaml.safe_load(f)
+        deep_update(self.data, user_data)
         self.data["watch"]["down_interval"] = durationpy.from_str(
             self.data["watch"]["down_interval"]
         ).total_seconds()
         self.data["notify"]["repeat_interval"] = durationpy.from_str(
             self.data["notify"]["repeat_interval"]
         ).total_seconds()
+
+
+def deep_update(base: dict, new: typing.Optional[dict]):
+    """Deep dict update.
+
+    Same as dict.update() except it recurses into dubdicts.
+    """
+    if new is None:
+        return
+    for key in base:
+        if key in new and type(base[key]) == dict:
+            deep_update(base[key], new[key])
+        elif key in new:
+            base[key] = new[key]
 
 
 config = Config()
