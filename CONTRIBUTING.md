@@ -23,7 +23,7 @@ skopeo --insecure-policy copy oci-archive:cos-alerter_0.2.0_amd64.rock docker-da
 
 Run:
 ```shell
-cp cos-alerter.sample.yaml cos-alerter.yaml
+cp config-defaults.yaml cos-alerter.yaml
 # Update cos-alerter.yaml with appropriate values
 docker run -p 8080:8080 --rm --mount type=bind,source="$(pwd)"/cos-alerter.yaml,target=/etc/cos-alerter.yaml,readonly -it cos-alerter:0.2.0
 ```
