@@ -1,1 +1,2 @@
 include cos_alerter/config-defaults.yaml
+include cos_alerter/templates/*.html
