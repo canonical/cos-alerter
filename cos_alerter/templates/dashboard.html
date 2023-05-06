@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-  <link rel="stylesheet" href="https://assets.ubuntu.com/v1/vanilla-framework-version-3.14.0.min.css" />
+  <link rel="stylesheet" href="./static/vanilla-framework-version-3.14.0.min.css" />
 </head>
 
 <body>
@@ -42,7 +42,7 @@
       {% for client in clients %}
       <tr>
         <td>{{ client["clientid"] }}</td>
-	<td>{{ client["status"] }}</td>
+        <td>{{ client["status"] }}</td>
         <td>{{ client["alert_time"] }}</td>
       </tr>
       {% endfor %}
