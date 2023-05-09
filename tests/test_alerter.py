@@ -7,37 +7,10 @@ import unittest.mock
 
 import apprise
 import freezegun
-import pytest
 import yaml
+from helpers import DESTINATIONS
 
 from cos_alerter.alerter import AlerterState, config, send_test_notification, up_time
-
-DESTINATIONS = [
-    "mailtos://user:pass@domain/?to=example-0@example.com,example-1@example.com",
-    "slack://xoxb-1234-1234-4ddbc191d40ee098cbaae6f3523ada2d/#general",
-]
-
-CONFIG = {
-    "watch": {
-        "down_interval": "5m",
-        "wait_for_first_connection": False,
-        "clients": ["client0"],
-    },
-    "notify": {
-        "destinations": DESTINATIONS,
-        "repeat_interval": "1h",
-    },
-}
-
-
-@pytest.fixture
-def fake_fs(fs):
-    fs.create_file("/etc/cos-alerter.yaml")
-    with open("/etc/cos-alerter.yaml", "w") as f:
-        f.write(yaml.dump(CONFIG))
-    config.set_path("/etc/cos-alerter.yaml")
-    config.reload()
-    return fs
 
 
 def assert_notifications(notify_mock, add_mock, title, body):
@@ -47,6 +20,29 @@ def assert_notifications(notify_mock, add_mock, title, body):
 
 def test_config_gets_item(fake_fs):
     assert config["watch"]["down_interval"] == 300
+
+
+def test_config_default_empty_file(fake_fs):
+    with open("/etc/cos-alerter.yaml", "w") as f:
+        f.write("")
+    config.reload()
+    assert config["watch"]["down_interval"] == 300
+
+
+def test_config_default_partial_file(fake_fs):
+    conf = yaml.dump({"log_level": "info"})
+    with open("/etc/cos-alerter.yaml", "w") as f:
+        f.write(conf)
+    config.reload()
+    assert config["watch"]["down_interval"] == 300
+
+
+def test_config_default_override(fake_fs):
+    conf = yaml.dump({"watch": {"down_interval": "1m"}})
+    with open("/etc/cos-alerter.yaml", "w") as f:
+        f.write(conf)
+    config.reload()
+    assert config["watch"]["down_interval"] == 60
 
 
 @freezegun.freeze_time("2023-01-01")

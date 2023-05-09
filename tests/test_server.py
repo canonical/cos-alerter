@@ -5,39 +5,18 @@ import copy
 
 import pytest
 import yaml
+from helpers import CONFIG
 from werkzeug.datastructures import MultiDict
 
 from cos_alerter.alerter import AlerterState, config
 from cos_alerter.server import app
 
 PARAMS = {"clientid": "client0"}
-CONFIG = {
-    "watch": {
-        "down_interval": "5m",
-        "wait_for_first_connection": True,
-        "clients": ["client0"],
-    },
-    "notify": {
-        "destinations": [],
-        "repeat_interval": "1h",
-    },
-    "log_level": "info",
-}
 
 
 @pytest.fixture
 def flask_client():
     return app.test_client()
-
-
-@pytest.fixture
-def fake_fs(fs):
-    fs.create_file("/etc/cos-alerter.yaml")
-    with open("/etc/cos-alerter.yaml", "w") as f:
-        f.write(yaml.dump(CONFIG))
-    config.set_path("/etc/cos-alerter.yaml")
-    config.reload()
-    return fs
 
 
 @pytest.fixture
