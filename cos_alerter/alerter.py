@@ -178,16 +178,16 @@ class AlerterState:
         logger.info("Sending notifications for %s.", self.clientid)
         self._set_notify_time()
         last_alert_datetime = self.last_alert_datetime()
-        last_alert_time = (
-            f"{last_alert_datetime.isoformat()} UTC"
+        last_alert_string = (
+            f"since {last_alert_datetime.isoformat()} UTC"
             if last_alert_datetime is not None
-            else "Never"
+            else "ever"
         )
         title = "**Alertmanager is Down!**"
         body = textwrap.dedent(
             f"""
             Your Alertmanager instance: {self.clientid} seems to be down!
-            It has not alerted COS-Alerter since {last_alert_time}.
+            It has not alerted COS-Alerter {last_alert_string}.
             """
         )
 
