@@ -157,7 +157,7 @@ class AlerterState:
             > config["notify"]["repeat_interval"]
         )
 
-    def last_alert_datetime(self) -> datetime.datetime:
+    def last_alert_datetime(self) -> typing.Optional[datetime.datetime]:
         """Return the actual time the last alert was received.
 
         Returns:
@@ -177,7 +177,7 @@ class AlerterState:
 
         logger.info("Sending notifications for %s.", self.clientid)
         self._set_notify_time()
-        last_alert_datetime = self._last_alert_datetime()
+        last_alert_datetime = self.last_alert_datetime()
         last_alert_time = (
             f"{last_alert_datetime.isoformat()} UTC"
             if last_alert_datetime is not None
