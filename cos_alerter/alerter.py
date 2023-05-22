@@ -200,7 +200,7 @@ class AlerterState:
 
 
 def now_datetime():
-    """Return the datetime for now using the monotonic clock."""
+    """Return the current datetime using the monotonic clock."""
     now_timestamp = (time.monotonic() - state["start_time"]) + state["start_date"]
     return datetime.datetime.fromtimestamp(now_timestamp, datetime.timezone.utc)
 
