@@ -23,8 +23,9 @@ dependencies = [
   "durationpy",
   "flask~=2.2",
   "prometheus_flask_exporter~=0.22",
+  "pyyaml~=6.0",
+  "timeago~=1.0",
   "waitress~=2.1",
-  "pyyaml~=6.0"
 ]
 
 [project.urls]

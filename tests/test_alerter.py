@@ -167,7 +167,7 @@ def test_notify(notify_mock, add_mock, monotonic_mock, fake_fs):
         body=textwrap.dedent(
             """
             Your Alertmanager instance: client0 seems to be down!
-            It has not alerted COS-Alerter since 2023-01-01T00:00:00+00:00 UTC.
+            It has not alerted COS-Alerter ever.
             """
         ),
     )

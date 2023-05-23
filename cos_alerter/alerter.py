@@ -128,6 +128,12 @@ class AlerterState:
                 "notify_time": None,
             }
 
+    @staticmethod
+    def clients():
+        """Return a list of clientids."""
+        for client in state["clients"]:
+            yield client
+
     def reset_alert_timeout(self):
         """Set the "last alert time" to right now."""
         logger.debug("Resetting alert timeout for %s.", self.clientid)
@@ -151,12 +157,14 @@ class AlerterState:
             > config["notify"]["repeat_interval"]
         )
 
-    def _last_alert_datetime(self) -> datetime.datetime:
+    def last_alert_datetime(self) -> typing.Optional[datetime.datetime]:
         """Return the actual time the last alert was received.
 
         Returns:
             A datetime.datetime object representing the time of the last alert.
         """
+        if self.data["alert_time"] is None or self.data["alert_time"] == self.start_time:
+            return None
         actual_alert_timestamp = (self.data["alert_time"] - self.start_time) + self.start_date
         return datetime.datetime.fromtimestamp(actual_alert_timestamp, datetime.timezone.utc)
 
@@ -169,12 +177,17 @@ class AlerterState:
 
         logger.info("Sending notifications for %s.", self.clientid)
         self._set_notify_time()
-        last_alert_time = self._last_alert_datetime().isoformat()
+        last_alert_datetime = self.last_alert_datetime()
+        last_alert_string = (
+            f"since {last_alert_datetime.isoformat()} UTC"
+            if last_alert_datetime is not None
+            else "ever"
+        )
         title = "**Alertmanager is Down!**"
         body = textwrap.dedent(
             f"""
             Your Alertmanager instance: {self.clientid} seems to be down!
-            It has not alerted COS-Alerter since {last_alert_time} UTC.
+            It has not alerted COS-Alerter {last_alert_string}.
             """
         )
 
@@ -184,6 +197,12 @@ class AlerterState:
             target=send_notifications, kwargs={"title": title, "body": body}
         )
         notify_thread.start()
+
+
+def now_datetime():
+    """Return the current datetime using the monotonic clock."""
+    now_timestamp = (time.monotonic() - state["start_time"]) + state["start_date"]
+    return datetime.datetime.fromtimestamp(now_timestamp, datetime.timezone.utc)
 
 
 def up_time():

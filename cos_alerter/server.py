@@ -5,14 +5,37 @@
 
 import logging
 
-from flask import Flask, request
+import timeago
+from flask import Flask, render_template, request
 from prometheus_flask_exporter import PrometheusMetrics
 
-from .alerter import AlerterState, config
+from .alerter import AlerterState, config, now_datetime
 
 app = Flask(__name__)
 metrics = PrometheusMetrics(app)
 logger = logging.getLogger(__name__)
+
+
+@app.route("/", methods=["GET"])
+def dashboard():
+    """Endpoint for the COS Alerter dashboard."""
+    clients = []
+    now = now_datetime()
+    for clientid in AlerterState.clients():
+        with AlerterState(clientid) as state:
+            last_alert = state.last_alert_datetime()
+            alert_time = timeago.format(last_alert, now) if last_alert is not None else "never"
+            status = "up" if not state.is_down() else "down"
+            if last_alert is None:
+                status = "unknown"
+            clients.append(
+                {
+                    "clientid": clientid,
+                    "status": status,
+                    "alert_time": alert_time,
+                }
+            )
+    return render_template("dashboard.html", clients=clients)
 
 
 @app.route("/alive", methods=["POST"])

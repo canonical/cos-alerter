@@ -24,6 +24,10 @@ def state_init():
     AlerterState.initialize()
 
 
+def test_dashboard_succeeds(flask_client, fake_fs, state_init):
+    assert flask_client.get("/").status_code == 200
+
+
 def test_alive_succeeds(flask_client, fake_fs, state_init):
     assert flask_client.post("/alive", query_string=PARAMS).status_code == 200
 

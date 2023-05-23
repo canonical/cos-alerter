@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <link rel="stylesheet" href="./static/vanilla-framework-version-3.14.0.min.css" />
+</head>
+
+<body>
+  <header id="navigation" class="p-navigation is-dark">
+    <div class="p-navigation__row">
+      <div class="p-navigation__banner">
+        <div class="p-navigation__tagged-logo">
+          <a class="p-navigation__link" href="#">
+            <div class="p-navigation__logo-tag">
+              <img class="p-navigation__logo-icon" src="https://assets.ubuntu.com/v1/82818827-CoF_white.svg" alt="">
+            </div>
+            <span class="p-navigation__logo-title" id="nav">
+              COS Alerter
+            </span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+  <div class="p-strip">
+    <div class="row">
+      <div class="col12">
+        <h2>Clients</h2>
+      </div>
+    </div>
+  <div class="row">
+  <div class="col12">
+  <table>
+    <thead>
+      <tr>
+        <th>Client</th>
+        <th>Status</th>
+        <th>Last Heartbeat</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for client in clients %}
+      <tr>
+        <td>{{ client["clientid"] }}</td>
+        {% if client["status"] == "up" %}
+        <td>✅ Up</td>
+        {% elif client["status"] == "down" %}
+        <td>❌ Down</td>
+        {% else %}
+        <td>❔ Unknown</td>
+        {% endif %}
+        <td>{{ client["alert_time"] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+</div>
+</div>
+</body>
+
+</html>
