@@ -6,6 +6,19 @@ on:
       - main
 
 jobs:
+  version-check:
+    name: Version Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Check All Versions Match
+        run: |
+          pkg_version=$(grep -P -o 'version = "\d+\.\d+\.\d+"' pyproject.toml | grep -P -o '\d+\.\d+\.\d+')
+          rock_version=$(grep -P -o 'version: "\d+\.\d+\.\d+"' rockcraft.yaml | grep -P -o '\d+\.\d+\.\d+')
+          rock_pkg_version=$(grep -P -o 'cos-alerter==\d+\.\d+\.\d+' rockcraft.yaml | grep -P -o '\d+\.\d+\.\d+')
+          [ "${pkg_version}" == "${rock_version}" ]
+          [ "${rock_version}" == "${rock_pkg_version}" ]
   linting:
     name: Linting
     runs-on: ubuntu-latest
