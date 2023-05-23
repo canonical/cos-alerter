@@ -33,7 +33,8 @@ jobs:
         with:
           files: CHANGELOG.md
       - name: Fail If No Change
-        run: [ "${{ steps.changed-files.outputs.any_changed }}" == "true" ]
+        run: |
+          [ "${{ steps.changed-files.outputs.any_changed }}" == "true" ]
   linting:
     name: Linting
     runs-on: ubuntu-latest
