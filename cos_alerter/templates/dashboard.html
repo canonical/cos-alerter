@@ -42,7 +42,13 @@
       {% for client in clients %}
       <tr>
         <td>{{ client["clientid"] }}</td>
-        <td>{{ client["status"] }}</td>
+        {% if client["status"] == "up" %}
+        <td>✅ Up</td>
+        {% elif client["status"] == "down" %}
+        <td>❌ Down</td>
+        {% else %}
+        <td>❔ Unknown</td>
+        {% endif %}
         <td>{{ client["alert_time"] }}</td>
       </tr>
       {% endfor %}

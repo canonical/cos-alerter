@@ -25,9 +25,9 @@ def dashboard():
         with AlerterState(clientid) as state:
             last_alert = state.last_alert_datetime()
             alert_time = timeago.format(last_alert, now) if last_alert is not None else "never"
-            status = "✅ Up" if not state.is_down() else "❌ Down"
+            status = "up" if not state.is_down() else "down"
             if last_alert is None:
-                status = "❔ Unknown"
+                status = "unknown"
             clients.append(
                 {
                     "clientid": clientid,
