@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Simple UI added to show the state of clients (#47).
 - Defaults for config file values (#44).
 
 ## [0.3.0] - 2023-04-28
