@@ -1,6 +1,8 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+# hello world
+
 """Main logic for COS Alerter."""
 
 import datetime
