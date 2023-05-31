@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cos-alerter"
-version = "0.3.0"
+version = "0.4.0"
 authors = [
   { name="Dylan Stephano-Shachter", email="dylan.stephano-shachter@canonical.com" }
 ]
