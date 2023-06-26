@@ -36,9 +36,27 @@ route:
 ```
 Note that `group_wait` should be set to `0s` so the alert starts firing right away.
 
+## Configuring COS Alerter
 
-## Run COS Alerter
+Copy the file `cos_alerter/config-defaults.yaml` to `/etc/cos-alerter.yaml` (If running without docker) or `./cos-alerter` (if running with docker). Edit the file with the appropriate values for your environment.
 
-Coming soon...
+## Running COS Alerter
+
+### Docker
+
+The easiest way to run COS Alerter is to use docker.
+```
+docker run -p 8080:8080 --mount type=bind,source="$(pwd)"/cos-alerter.yaml,target=/etc/cos-alerter.yaml,readonly -it ghcr.io/canonical/cos-alerter:latest
+```
+
+### Python
+
+You can also run cos-alerter by installing the python package.
+```
+pip install cos-alerter
+cos-alerter
+```
+
+### Development Builds
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for running development builds.
