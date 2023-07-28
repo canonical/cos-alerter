@@ -35,6 +35,9 @@ Homepage = "https://github.com/canonical/cos-alerter"
 [project.scripts]
 cos-alerter = "cos_alerter.daemon:main"
 
+[tool.setuptools.package-dir]
+cos_alerter = "cos_alerter"
+
 [tool.black]
 line-length = 99
 
