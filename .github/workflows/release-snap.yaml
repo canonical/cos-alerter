@@ -1,0 +1,35 @@
+name: Release Snap
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - snap/**
+
+
+env:
+  SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup LXD
+        uses: canonical/setup-lxd@v0.1.1
+        with:
+          channel: latest/stable
+
+      - name: Install dependencies
+        run: |
+          sudo snap install --classic --channel edge snapcraft
+
+      - name: Build Snap
+        run: snapcraft pack --output cos-alerter.snap
+
+      - name: Upload and Publish Snap
+        run: snapcraft upload --release edge cos-alerter.snap
+
