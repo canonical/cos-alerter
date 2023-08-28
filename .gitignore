@@ -5,4 +5,5 @@ cos-alerter.yaml
 dist
 venv
 *.egg-info
+*.snap
 **/__pycache__

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - Added usage instructions to the readme (#51).
+- Added snapcraft build recipes and automation. (#52)
 
 ## [0.4.0] - 2023-05-31
 

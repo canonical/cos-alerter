@@ -1,0 +1,39 @@
+name: cos-alerter
+version: '0.4.0'
+summary: A watchdog alerting on alertmanager notification failures.
+license: Apache-2.0
+contact: simon.aronsson@canonical.com
+issues: https://github.com/canonical/cos-alerter/issues
+source-code: https://github.com/canonical/cos-alerter/
+website: https://charmhub.io/topics/canonical-observability-stack/
+description: |
+  COS Alerter is a watchdog used to alert on alertmanager notification failures.
+  By leveraging an always-firing alert rule routed specifically to cos-alerter, you'll
+  be alerted if the pings stop happening - meaning your alertmanager is likely malfunctioning.
+
+base: core22
+grade: stable
+confinement: strict
+compression: lzo
+
+plugs:
+  etc-cos-alerter:
+    interface: system-files
+    read:
+      - /etc/cos-alerter.yaml
+
+parts:
+  cos-alerter:
+    plugin: python
+    source: .
+
+apps:
+  daemon:
+    command: bin/cos-alerter --config /etc/cos-alerter.yaml
+    install-mode: disable
+    restart-condition: on-failure
+    daemon: simple
+    plugs:
+      - network
+      - network-bind
+      - etc-cos-alerter
