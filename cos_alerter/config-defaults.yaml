@@ -35,3 +35,7 @@ notify:
 # The logging level of COS Alerter
 # Levels available: critical, error, warning, info, debug
 log_level: "info"
+
+# The address to listen on for http traffic.
+# Format HOST:PORT
+web_listen_addr: "0.0.0.0:8080"
