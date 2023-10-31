@@ -95,7 +95,12 @@ def main(run_for: Optional[int] = None, argv: List[str] = sys.argv):
     # from the daemon. It also facilitates communication over memory rather than files.
     # clear_untrusted_proxy_headers is set to suppress a DeprecationWarning.
     server_thread = threading.Thread(
-        target=waitress.serve, args=(app,), kwargs={"clear_untrusted_proxy_headers": True}
+        target=waitress.serve,
+        args=(app,),
+        kwargs={
+            "clear_untrusted_proxy_headers": True,
+            "listen": config["web_listen_addr"],
+        },
     )
     server_thread.daemon = True  # Makes this thread exit when the main thread exits.
     logger.info("Starting the web server thread.")

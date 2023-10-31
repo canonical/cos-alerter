@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2023-10-26
+
 - Added usage instructions to the readme (#51).
 - Added snapcraft build recipes and automation. (#52)
+- Added the ability to set the listen address and port for the web server. (#55)
 
 ## [0.4.0] - 2023-05-31
 

@@ -55,7 +55,7 @@ def deep_update(base: dict, new: typing.Optional[dict]):
     if new is None:
         return
     for key in base:
-        if key in new and type(base[key]) == dict:
+        if key in new and isinstance(base[key], dict):
             deep_update(base[key], new[key])
         elif key in new:
             base[key] = new[key]
