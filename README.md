@@ -1,4 +1,9 @@
 # COS Alerter
+
+[![Push to Main](https://github.com/canonical/cos-alerter/actions/workflows/push-main.yaml/badge.svg)](https://github.com/canonical/cos-alerter/actions/workflows/push-main.yaml)
+[![Release Snap](https://github.com/canonical/cos-alerter/actions/workflows/release-snap.yaml/badge.svg)](https://github.com/canonical/cos-alerter/actions/workflows/release-snap.yaml)
+[![Discourse Status](https://img.shields.io/discourse/status?server=https%3A%2F%2Fdiscourse.charmhub.io&style=flat&label=CharmHub%20Discourse)](https://discourse.charmhub.io)
+
 COS Alerter is intended to be used together with alertmanager and prometheus:
 - Liveness of Alertmanager through an always-firing alert rule ("Watchdog")
 - Liveness of COS Alerter itself from a metric endpoint it exposes and prometheus scrapes
