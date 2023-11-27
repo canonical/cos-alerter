@@ -68,14 +68,14 @@ def alive():
         uuid.UUID(clientid, version=4)
     except ValueError:
         logger.warning("Request %s specified an invalid clientid.", request.url)
-        return f"Clientid {clientid} is not a valid UUID.", 400
+        return 'Clientid {params["clientid"]} is not a valid UUID. ', 400
 
     clients = config["watch"]["clients"]
     # Find the client with the specified clientid
     matching_clients = [c for c in clients if c["id"] == clientid]
     if not matching_clients:
         logger.warning("Request %s specified an unknown clientid.", request.url)
-        return f"Clientid {clientid} not found.", 404
+        return 'Clientid {params["clientid"]} not found. ', 404
     client = matching_clients[0]
     if key != client["key"]:
         logger.warning("Request %s provided an incorrect key.", request.url)

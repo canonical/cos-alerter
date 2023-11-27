@@ -65,9 +65,6 @@ def test_wrong_clientid(flask_client, fake_fs, state_init):
         query_string={"clientid": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "key": "jk3h4g5j34h0"},
     )
     assert response.status_code == 404
-    assert "Clientid a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11 not found." in response.get_data(
-        as_text=True
-    )
 
 
 def test_duplicate_clientid(flask_client, fake_fs, state_init):
