@@ -120,9 +120,10 @@ class AlerterState:
         #     ...
         # }
         state["clients"] = {}
-        for client in config["watch"]["clients"]:
+        for client_data in config["watch"]["clients"]:
+            client_id = client_data["id"]
             alert_time = None if config["watch"]["wait_for_first_connection"] else current_time
-            state["clients"][client] = {
+            state["clients"][client_id] = {
                 "lock": threading.Lock(),
                 "alert_time": alert_time,
                 "notify_time": None,

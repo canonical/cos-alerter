@@ -41,7 +41,7 @@
     <tbody>
       {% for client in clients %}
       <tr>
-        <td>{{ client["clientid"] }}</td>
+        <td>{{ client["client_name"] }}</td>
         {% if client["status"] == "up" %}
         <td>✅ Up</td>
         {% elif client["status"] == "down" %}

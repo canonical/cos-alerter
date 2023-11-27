@@ -9,11 +9,16 @@ watch:
   wait_for_first_connection: true
 
   # The list of Alertmanager instances we are monitoring. Alertmanager instances should be
-  # configured with the clientid=<client> parameter.
+  # configured with the clientid=<clientid> &key=<clientkey> parameters.
+  # <clientid> must be a valid UUID
   # eg:
   # clients:
-  #   - "client0"
-  #   - "client1"
+    # - id: clientuuid1
+    #   key: clientkey1
+    #   name: Instance Name 1
+    # - id: clientuuid2
+    #   key: clientkey2
+    #   name: Instance Name 2
   clients: []
 
 notify:
