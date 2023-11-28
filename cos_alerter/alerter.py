@@ -7,6 +7,7 @@ import datetime
 import hashlib
 import logging
 import os
+import sys
 import textwrap
 import threading
 import time
@@ -15,7 +16,8 @@ from pathlib import Path
 
 import apprise
 import durationpy
-import yaml
+from ruamel.yaml import YAML
+from ruamel.yaml.constructor import DuplicateKeyError
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +35,7 @@ class Config:
 
     def _hash_keys(self, clients):
         """Hash the keys in the clients dictionary."""
-        for _, client_info in clients.items():
+        for client_info in clients.values():
             client_key = client_info.get("key", "")
             if client_key:
                 hashed_key = hashlib.sha256(client_key.encode()).hexdigest()
@@ -41,12 +43,17 @@ class Config:
 
     def reload(self):
         """Reload config values from the disk."""
+        yaml = YAML(typ="rt")
         with open(
             os.path.join(os.path.dirname(os.path.realpath(__file__)), "config-defaults.yaml")
         ) as f:
-            self.data = yaml.safe_load(f)
+            self.data = yaml.load(f)
         with open(self.path, "r") as f:
-            user_data = yaml.safe_load(f)
+            try:
+                user_data = yaml.load(f)
+            except DuplicateKeyError:
+                logger.error("Duplicate client IDs found in COS Alerter config. Exiting...")
+                sys.exit(1)
         deep_update(self.data, user_data)
         self._hash_keys(self.data["watch"]["clients"])
         self.data["watch"]["down_interval"] = durationpy.from_str(
@@ -130,7 +137,7 @@ class AlerterState:
         #     ...
         # }
         state["clients"] = {}
-        for client_id, _ in config["watch"]["clients"].items():
+        for client_id in config["watch"]["clients"]:
             alert_time = None if config["watch"]["wait_for_first_connection"] else current_time
             state["clients"][client_id] = {
                 "lock": threading.Lock(),

@@ -106,7 +106,7 @@ def main(run_for: Optional[int] = None, argv: List[str] = sys.argv):
     logger.info("Starting the web server thread.")
     server_thread.start()
 
-    for clientid, _ in config["watch"]["clients"].items():
+    for clientid in config["watch"]["clients"]:
         client_thread = threading.Thread(target=client_loop, args=(clientid,))
         client_thread.daemon = True  # Makes this thread exit when the main thread exits.
         logger.info("Starting worker thread for client: %s", clientid)

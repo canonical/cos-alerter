@@ -29,6 +29,31 @@ def test_config_default_empty_file(fake_fs):
     assert config["watch"]["down_interval"] == 300
 
 
+def test_duplicate_key_error(fake_fs):
+    duplicate_config = """
+    watch:
+      down_interval: "5m"
+      wait_for_first_connection: true
+      clients:
+        clientid1:
+          key: "clientkey1"
+          name: "Instance Name 1"
+        clientid1:
+          key: "clientkey1"
+          name: "Instance Name 1"
+    """
+    with open("/etc/cos-alerter.yaml", "w") as f:
+        f.write(duplicate_config)
+
+    try:
+        config.reload()
+    except SystemExit as exc:
+        assert exc.code == 1
+    else:
+        # If no exception is raised, fail the test
+        assert False
+
+
 def test_config_default_partial_file(fake_fs):
     conf = yaml.dump({"log_level": "info"})
     with open("/etc/cos-alerter.yaml", "w") as f:
