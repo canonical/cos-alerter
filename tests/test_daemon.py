@@ -29,13 +29,12 @@ def mock_fs(fake_fs):
                     "watch": {
                         "down_interval": "4s",
                         "wait_for_first_connection": False,
-                        "clients": [
-                            {
-                                "id": "123e4567-e89b-12d3-a456-426614174001",
-                                "key": "jk3h4g5j34h0",
-                                "name": "Client 0",
-                            }
-                        ],
+                        "clients": {
+                            "clientid1": {
+                                "key": "clientkey1",
+                                "name": "Instance Name 1",
+                            },
+                        },
                     },
                     "notify": {
                         "destinations": DESTINATIONS,
@@ -64,7 +63,7 @@ def test_main(notify_mock, add_mock, mock_fs):
                 "curl",
                 "-X",
                 "POST",
-                "http://localhost:8080/alive?clientid=123e4567-e89b-12d3-a456-426614174001&key=jk3h4g5j34h0",
+                "http://localhost:8080/alive?clientid=clientid1&key=clientkey1",
             ]
         )
         time.sleep(3)  # Would be considered down but we just sent an alive call.

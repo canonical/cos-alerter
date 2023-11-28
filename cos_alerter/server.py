@@ -3,8 +3,8 @@
 
 """HTTP server for COS Alerter."""
 
+import hashlib
 import logging
-import uuid
 
 import timeago
 from flask import Flask, render_template, request
@@ -15,14 +15,6 @@ from .alerter import AlerterState, config, now_datetime
 app = Flask(__name__)
 metrics = PrometheusMetrics(app)
 logger = logging.getLogger(__name__)
-
-
-def get_name_for_uuid(target_uuid, clients):
-    """Get the name corresponding to a given UUID from a list of clients."""
-    for client in clients:
-        if client["id"] == target_uuid:
-            return client["name"]
-    return None
 
 
 @app.route("/", methods=["GET"])
@@ -37,7 +29,7 @@ def dashboard():
             status = "up" if not state.is_down() else "down"
             if last_alert is None:
                 status = "unknown"
-            client_name = get_name_for_uuid(clientid, config["watch"]["clients"])
+            client_name = config["watch"]["clients"][clientid].get("name", "")
             clients.append(
                 {
                     "client_name": client_name,
@@ -64,20 +56,16 @@ def alive():
         return 'Parameters "clientid" and "key" should be provided exactly once.', 400
     clientid = clientid_list[0]
     key = key_list[0]
-    try:
-        uuid.UUID(clientid, version=4)
-    except ValueError:
-        logger.warning("Request %s specified an invalid clientid.", request.url)
-        return 'Clientid {params["clientid"]} is not a valid UUID. ', 400
 
-    clients = config["watch"]["clients"]
     # Find the client with the specified clientid
-    matching_clients = [c for c in clients if c["id"] == clientid]
-    if not matching_clients:
+    client_info = config["watch"]["clients"].get(clientid)
+    if not client_info:
         logger.warning("Request %s specified an unknown clientid.", request.url)
         return 'Clientid {params["clientid"]} not found. ', 404
-    client = matching_clients[0]
-    if key != client["key"]:
+
+    # Hash the key and compare with the stored hashed key
+    hashed_key = hashlib.sha256(key.encode()).hexdigest()
+    if hashed_key != client_info.get("key", ""):
         logger.warning("Request %s provided an incorrect key.", request.url)
         return "Incorrect key for the specified clientid.", 401
     logger.info("Received alert from Alertmanager clientid: %s.", clientid)

@@ -4,6 +4,7 @@
 """Main logic for COS Alerter."""
 
 import datetime
+import hashlib
 import logging
 import os
 import textwrap
@@ -30,6 +31,14 @@ class Config:
         """Set the config file path."""
         self.path = Path(path)
 
+    def _hash_keys(self, clients):
+        """Hash the keys in the clients dictionary."""
+        for _, client_info in clients.items():
+            client_key = client_info.get("key", "")
+            if client_key:
+                hashed_key = hashlib.sha256(client_key.encode()).hexdigest()
+                client_info["key"] = hashed_key
+
     def reload(self):
         """Reload config values from the disk."""
         with open(
@@ -39,6 +48,7 @@ class Config:
         with open(self.path, "r") as f:
             user_data = yaml.safe_load(f)
         deep_update(self.data, user_data)
+        self._hash_keys(self.data["watch"]["clients"])
         self.data["watch"]["down_interval"] = durationpy.from_str(
             self.data["watch"]["down_interval"]
         ).total_seconds()
@@ -50,15 +60,15 @@ class Config:
 def deep_update(base: dict, new: typing.Optional[dict]):
     """Deep dict update.
 
-    Same as dict.update() except it recurses into dubdicts.
+    Same as dict.update() except it recurses into subdicts.
     """
     if new is None:
         return
-    for key in base:
-        if key in new and isinstance(base[key], dict):
-            deep_update(base[key], new[key])
-        elif key in new:
-            base[key] = new[key]
+    for key, new_value in new.items():
+        if key in base and isinstance(base[key], dict) and isinstance(new_value, dict):
+            deep_update(base[key], new_value)
+        else:
+            base[key] = new_value
 
 
 config = Config()
@@ -120,8 +130,7 @@ class AlerterState:
         #     ...
         # }
         state["clients"] = {}
-        for client_data in config["watch"]["clients"]:
-            client_id = client_data["id"]
+        for client_id, _ in config["watch"]["clients"].items():
             alert_time = None if config["watch"]["wait_for_first_connection"] else current_time
             state["clients"][client_id] = {
                 "lock": threading.Lock(),

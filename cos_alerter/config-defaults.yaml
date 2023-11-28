@@ -10,16 +10,15 @@ watch:
 
   # The list of Alertmanager instances we are monitoring. Alertmanager instances should be
   # configured with the clientid=<clientid> &key=<clientkey> parameters.
-  # <clientid> must be a valid UUID
   # eg:
   # clients:
-    # - id: clientuuid1
-    #   key: clientkey1
-    #   name: Instance Name 1
-    # - id: clientuuid2
-    #   key: clientkey2
-    #   name: Instance Name 2
-  clients: []
+    # clientid1:
+    #   key: "clientkey1"
+    #   name: "Instance Name 1"
+    # clientid2:
+    #   key: "clientkey2"
+    #   name: "Instance Name 2"
+  clients: {}
 
 notify:
 
