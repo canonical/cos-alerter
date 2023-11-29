@@ -36,11 +36,7 @@ class Config:
         """Validate that keys in the clients dictionary are valid SHA-512 hashes."""
         for client_info in clients.values():
             client_key = client_info.get("key", "")
-            try:
-                is_valid = len(client_key) == 128
-            except (ValueError, TypeError):
-                is_valid = False
-
+            is_valid = len(client_key) == 128
             if client_key and not is_valid:
                 return False
         return True
