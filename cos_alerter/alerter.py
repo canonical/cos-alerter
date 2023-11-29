@@ -4,7 +4,6 @@
 """Main logic for COS Alerter."""
 
 import datetime
-import hashlib
 import logging
 import os
 import sys
@@ -33,13 +32,18 @@ class Config:
         """Set the config file path."""
         self.path = Path(path)
 
-    def _hash_keys(self, clients):
-        """Hash the keys in the clients dictionary."""
+    def _validate_hashes(self, clients):
+        """Validate that keys in the clients dictionary are valid SHA-512 hashes."""
         for client_info in clients.values():
             client_key = client_info.get("key", "")
-            if client_key:
-                hashed_key = hashlib.sha256(client_key.encode()).hexdigest()
-                client_info["key"] = hashed_key
+            try:
+                is_valid = len(client_key) == 128
+            except (ValueError, TypeError):
+                is_valid = False
+
+            if client_key and not is_valid:
+                return False
+        return True
 
     def reload(self):
         """Reload config values from the disk."""
@@ -52,10 +56,16 @@ class Config:
             try:
                 user_data = yaml.load(f)
             except DuplicateKeyError:
-                logger.error("Duplicate client IDs found in COS Alerter config. Exiting...")
+                logger.critical("Duplicate client IDs found in COS Alerter config. Exiting...")
                 sys.exit(1)
+
+        # Validate that keys are valid SHA-512 hashes
+        if user_data and user_data.get("watch", {}).get("clients"):
+            if not self._validate_hashes(user_data["watch"]["clients"]):
+                logger.critical("Invalid SHA-512 hash(es) in config. Exiting...")
+                sys.exit(1)
+
         deep_update(self.data, user_data)
-        self._hash_keys(self.data["watch"]["clients"])
         self.data["watch"]["down_interval"] = durationpy.from_str(
             self.data["watch"]["down_interval"]
         ).total_seconds()

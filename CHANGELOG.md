@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2023-11-29
+
 - Added badges to README.md (#62).
+- Config now accommodates client ID, key, and name, allowing users to specify individual client details.(#63).
+
 
 ## [0.5.0] - 2023-10-26
 

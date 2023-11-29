@@ -64,7 +64,7 @@ def alive():
         return 'Clientid {params["clientid"]} not found. ', 404
 
     # Hash the key and compare with the stored hashed key
-    hashed_key = hashlib.sha256(key.encode()).hexdigest()
+    hashed_key = hashlib.sha512(key.encode()).hexdigest()
     if hashed_key != client_info.get("key", ""):
         logger.warning("Request %s provided an incorrect key.", request.url)
         return "Incorrect key for the specified clientid.", 401

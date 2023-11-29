@@ -54,6 +54,28 @@ def test_duplicate_key_error(fake_fs):
         assert False
 
 
+def test_invalid_hashes(fake_fs):
+    duplicate_config = """
+    watch:
+      down_interval: "5m"
+      wait_for_first_connection: true
+      clients:
+        invalidhashclient:
+          key: "E0E06B8DB6ED8DD4E1FFE98376E606BDF4FE4ABB4AF65BFE8B18FBFA6564D8B3"
+          name: "Instance Name 1"
+    """
+    with open("/etc/cos-alerter.yaml", "w") as f:
+        f.write(duplicate_config)
+
+    try:
+        config.reload()
+    except SystemExit as exc:
+        assert exc.code == 1
+    else:
+        # If no exception is raised, fail the test
+        assert False
+
+
 def test_config_default_partial_file(fake_fs):
     conf = yaml.dump({"log_level": "info"})
     with open("/etc/cos-alerter.yaml", "w") as f:

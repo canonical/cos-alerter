@@ -28,9 +28,6 @@ receivers:
 - name: cos-alerter
   webhook_configs:
   - url: http://<cos-alerter-address>:8080/alive?clientid=<clientid>&key=<clientkey>
-  # The above URL should be configured with the appropriate values for clientid and key.
-  # - clientid: Unique identifier for the Alertmanager instance.
-  # - key: Secret key for authenticating and authorizing communication with COS Alerter.
 route:
   ...
   routes:

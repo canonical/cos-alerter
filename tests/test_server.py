@@ -70,7 +70,7 @@ def test_wrong_clientid(flask_client, fake_fs, state_init):
 def test_duplicate_clientid(flask_client, fake_fs, state_init):
     conf = copy.deepcopy(CONFIG)
     conf["watch"]["clients"]["clientid2"] = {
-        "key": "clientkey2",
+        "key": "0415b0cad09712bd1ed094bc06ed421231d0603465e9841c959e9f9dcf735c9ce704df7a0c849a4e0db405c916f679a0e6c3f63f9e26191dda8069e1b44a3bc8",
         "name": "Client 2",
     }
     with open("/etc/cos-alerter.yaml", "w") as f:
