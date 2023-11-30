@@ -29,7 +29,12 @@ def mock_fs(fake_fs):
                     "watch": {
                         "down_interval": "4s",
                         "wait_for_first_connection": False,
-                        "clients": ["client0"],
+                        "clients": {
+                            "clientid1": {
+                                "key": "822295b207a0b73dd4690b60a03c55599346d44aef3da4cf28c3296eadb98b2647ae18863cc3ae8ae5574191b60360858982fd8a8d176c0edf646ce6eee24ef9",
+                                "name": "Instance Name 1",
+                            },
+                        },
                     },
                     "notify": {
                         "destinations": DESTINATIONS,
@@ -53,7 +58,14 @@ def test_main(notify_mock, add_mock, mock_fs):
         main_thread.start()
         time.sleep(2)  # Should not be considered down yet.
         notify_mock.assert_not_called()
-        subprocess.call(["curl", "-X", "POST", "http://localhost:8080/alive?clientid=client0"])
+        subprocess.call(
+            [
+                "curl",
+                "-X",
+                "POST",
+                "http://localhost:8080/alive?clientid=clientid1&key=clientkey1",
+            ]
+        )
         time.sleep(3)  # Would be considered down but we just sent an alive call.
         notify_mock.assert_not_called()
         time.sleep(3)  # It has been > 4 seconds since we last alerted so it should be down.

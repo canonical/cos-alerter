@@ -6,6 +6,7 @@
 import datetime
 import logging
 import os
+import sys
 import textwrap
 import threading
 import time
@@ -14,7 +15,8 @@ from pathlib import Path
 
 import apprise
 import durationpy
-import yaml
+from ruamel.yaml import YAML
+from ruamel.yaml.constructor import DuplicateKeyError
 
 logger = logging.getLogger(__name__)
 
@@ -30,14 +32,35 @@ class Config:
         """Set the config file path."""
         self.path = Path(path)
 
+    def _validate_hashes(self, clients):
+        """Validate that keys in the clients dictionary are valid SHA-512 hashes."""
+        for client_info in clients.values():
+            client_key = client_info.get("key", "")
+            is_valid = len(client_key) == 128
+            if client_key and not is_valid:
+                return False
+        return True
+
     def reload(self):
         """Reload config values from the disk."""
+        yaml = YAML(typ="rt")
         with open(
             os.path.join(os.path.dirname(os.path.realpath(__file__)), "config-defaults.yaml")
         ) as f:
-            self.data = yaml.safe_load(f)
+            self.data = yaml.load(f)
         with open(self.path, "r") as f:
-            user_data = yaml.safe_load(f)
+            try:
+                user_data = yaml.load(f)
+            except DuplicateKeyError:
+                logger.critical("Duplicate client IDs found in COS Alerter config. Exiting...")
+                sys.exit(1)
+
+        # Validate that keys are valid SHA-512 hashes
+        if user_data and user_data.get("watch", {}).get("clients"):
+            if not self._validate_hashes(user_data["watch"]["clients"]):
+                logger.critical("Invalid SHA-512 hash(es) in config. Exiting...")
+                sys.exit(1)
+
         deep_update(self.data, user_data)
         self.data["watch"]["down_interval"] = durationpy.from_str(
             self.data["watch"]["down_interval"]
@@ -50,15 +73,15 @@ class Config:
 def deep_update(base: dict, new: typing.Optional[dict]):
     """Deep dict update.
 
-    Same as dict.update() except it recurses into dubdicts.
+    Same as dict.update() except it recurses into subdicts.
     """
     if new is None:
         return
-    for key in base:
-        if key in new and isinstance(base[key], dict):
-            deep_update(base[key], new[key])
-        elif key in new:
-            base[key] = new[key]
+    for key, new_value in new.items():
+        if key in base and isinstance(base[key], dict) and isinstance(new_value, dict):
+            deep_update(base[key], new_value)
+        else:
+            base[key] = new_value
 
 
 config = Config()
@@ -120,9 +143,9 @@ class AlerterState:
         #     ...
         # }
         state["clients"] = {}
-        for client in config["watch"]["clients"]:
+        for client_id in config["watch"]["clients"]:
             alert_time = None if config["watch"]["wait_for_first_connection"] else current_time
-            state["clients"][client] = {
+            state["clients"][client_id] = {
                 "lock": threading.Lock(),
                 "alert_time": alert_time,
                 "notify_time": None,

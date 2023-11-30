@@ -3,6 +3,7 @@
 
 """HTTP server for COS Alerter."""
 
+import hashlib
 import logging
 
 import timeago
@@ -28,9 +29,10 @@ def dashboard():
             status = "up" if not state.is_down() else "down"
             if last_alert is None:
                 status = "unknown"
+            client_name = config["watch"]["clients"][clientid].get("name", "")
             clients.append(
                 {
-                    "clientid": clientid,
+                    "client_name": client_name,
                     "status": status,
                     "alert_time": alert_time,
                 }
@@ -44,16 +46,28 @@ def alive():
     # TODO Decide if we should validate the request.
     params = request.args
     clientid_list = params.getlist("clientid")  # params is a werkzeug.datastructures.MultiDict
-    if len(clientid_list) < 1:
-        logger.warning("Request %s has no clientid.", request.url)
-        return 'Parameter "clientid" required.', 400
-    if len(clientid_list) > 1:
-        logger.warning("Request %s specified clientid more than once.", request.url)
-        return 'Parameter "clientid" provided more than once.', 400
+    key_list = params.getlist("key")
+
+    if len(clientid_list) < 1 or len(key_list) < 1:
+        logger.warning("Request %s is missing clientid or key.", request.url)
+        return 'Parameters "clientid" and "key" are required.', 400
+    if len(clientid_list) > 1 or len(key_list) > 1:
+        logger.warning("Request %s specified clientid or key more than once.", request.url)
+        return 'Parameters "clientid" and "key" should be provided exactly once.', 400
     clientid = clientid_list[0]
-    if clientid not in config["watch"]["clients"]:
-        logger.warning("Request %s specified an unknown clientid.")
+    key = key_list[0]
+
+    # Find the client with the specified clientid
+    client_info = config["watch"]["clients"].get(clientid)
+    if not client_info:
+        logger.warning("Request %s specified an unknown clientid.", request.url)
         return 'Clientid {params["clientid"]} not found. ', 404
+
+    # Hash the key and compare with the stored hashed key
+    hashed_key = hashlib.sha512(key.encode()).hexdigest()
+    if hashed_key != client_info.get("key", ""):
+        logger.warning("Request %s provided an incorrect key.", request.url)
+        return "Incorrect key for the specified clientid.", 401
     logger.info("Received alert from Alertmanager clientid: %s.", clientid)
     with AlerterState(clientid) as state:
         state.reset_alert_timeout()

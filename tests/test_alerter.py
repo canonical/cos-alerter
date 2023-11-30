@@ -29,6 +29,53 @@ def test_config_default_empty_file(fake_fs):
     assert config["watch"]["down_interval"] == 300
 
 
+def test_duplicate_key_error(fake_fs):
+    duplicate_config = """
+    watch:
+      down_interval: "5m"
+      wait_for_first_connection: true
+      clients:
+        clientid1:
+          key: "clientkey1"
+          name: "Instance Name 1"
+        clientid1:
+          key: "clientkey1"
+          name: "Instance Name 1"
+    """
+    with open("/etc/cos-alerter.yaml", "w") as f:
+        f.write(duplicate_config)
+
+    try:
+        config.reload()
+    except SystemExit as exc:
+        assert exc.code == 1
+    else:
+        # If no exception is raised, fail the test
+        assert False
+
+
+def test_invalid_hashes(fake_fs):
+    duplicate_config = """
+    watch:
+      down_interval: "5m"
+      wait_for_first_connection: true
+      clients:
+        invalidhashclient:
+          key: "E0E06B8DB6ED8DD4E1FFE98376E606BDF4FE4ABB4AF65BFE8B18FBFA6564D8B3"
+          name: "Instance Name 1"
+    """
+    with open("/etc/cos-alerter.yaml", "w") as f:
+        f.write(duplicate_config)
+
+    try:
+        config.reload()
+    except SystemExit as exc:
+        assert exc.code == 1
+    else:
+        # If no exception is raised, fail the test
+        assert False
+
+
 def test_config_default_partial_file(fake_fs):
     conf = yaml.dump({"log_level": "info"})
     with open("/etc/cos-alerter.yaml", "w") as f:
@@ -50,7 +97,7 @@ def test_config_default_override(fake_fs):
 def test_initialize(monotonic_mock, fake_fs):
     monotonic_mock.return_value = 1000
     AlerterState.initialize()
-    state = AlerterState(clientid="client0")
+    state = AlerterState(clientid="clientid1")
     with state:
         assert state.start_date == 1672531200.0
         assert state.start_time == 1000
@@ -72,7 +119,7 @@ def test_up_time(monotonic_mock, fake_fs):
 def test_is_down_from_initialize(monotonic_mock, fake_fs):
     monotonic_mock.return_value = 1000
     AlerterState.initialize()
-    state = AlerterState(clientid="client0")
+    state = AlerterState(clientid="clientid1")
     with state:
         monotonic_mock.return_value = 1180  # Three minutes have passed
         assert state.is_down() is False
@@ -85,7 +132,7 @@ def test_is_down_from_initialize(monotonic_mock, fake_fs):
 def test_is_down_with_reset_alert_timeout(monotonic_mock, fake_fs):
     monotonic_mock.return_value = 1000
     AlerterState.initialize()
-    state = AlerterState(clientid="client0")
+    state = AlerterState(clientid="clientid1")
     with state:
         monotonic_mock.return_value = 2000
         state.reset_alert_timeout()
@@ -106,7 +153,7 @@ def test_is_down_with_wait_for_first_connection(monotonic_mock, fake_fs):
     config.reload()
     monotonic_mock.return_value = 1000
     AlerterState.initialize()
-    state = AlerterState(clientid="client0")
+    state = AlerterState(clientid="clientid1")
     with state:
         monotonic_mock.return_value = 1500
         assert state.is_down() is False  # 6 minutes have passes but we have not started counting.
@@ -122,7 +169,7 @@ def test_is_down_with_wait_for_first_connection(monotonic_mock, fake_fs):
 def test_is_down(monotonic_mock, fake_fs):
     monotonic_mock.return_value = 1000
     AlerterState.initialize()
-    state = AlerterState(clientid="client0")
+    state = AlerterState(clientid="clientid1")
     with state:
         monotonic_mock.return_value = 2000
         state.reset_alert_timeout()
@@ -137,7 +184,7 @@ def test_is_down(monotonic_mock, fake_fs):
 def test_recently_notified(monotonic_mock, fake_fs):
     monotonic_mock.return_value = 1000
     AlerterState.initialize()
-    state = AlerterState(clientid="client0")
+    state = AlerterState(clientid="clientid1")
     with state:
         state._set_notify_time()
         monotonic_mock.return_value = 2800  # 30 minutes have passed
@@ -153,7 +200,7 @@ def test_recently_notified(monotonic_mock, fake_fs):
 def test_notify(notify_mock, add_mock, monotonic_mock, fake_fs):
     monotonic_mock.return_value = 1000
     AlerterState.initialize()
-    state = AlerterState(clientid="client0")
+    state = AlerterState(clientid="clientid1")
 
     with state:
         state.notify()
@@ -166,7 +213,7 @@ def test_notify(notify_mock, add_mock, monotonic_mock, fake_fs):
         title="**Alertmanager is Down!**",
         body=textwrap.dedent(
             """
-            Your Alertmanager instance: client0 seems to be down!
+            Your Alertmanager instance: clientid1 seems to be down!
             It has not alerted COS-Alerter ever.
             """
         ),
