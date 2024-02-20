@@ -28,6 +28,12 @@ def sigint(_, __):  # pragma: no cover
     sys.exit()
 
 
+def sigterm(_, __):  # pragma: no cover
+    """Signal handler for graceful shutdown on sigterm."""
+    logger.info("Shutting down.")
+    AlerterState.dump_and_exit()
+
+
 def sigusr1(_, __):  # pragma: no cover
     """Signal handler for SIGUSR1 which sends a test notification."""
     logger.info("Received SIGUSR1.")
@@ -82,6 +88,7 @@ def main(run_for: Optional[int] = None, argv: List[str] = sys.argv):
     # Observe signal handlers
     try:  # pragma: no cover
         signal.signal(signal.SIGINT, sigint)
+        signal.signal(signal.SIGTERM, sigterm)
         signal.signal(signal.SIGUSR1, sigusr1)
         logger.debug("Signal handlers set.")
     except ValueError as e:

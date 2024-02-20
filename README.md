@@ -9,7 +9,7 @@ COS Alerter is intended to be used together with alertmanager and prometheus:
 - Liveness of COS Alerter itself from a metric endpoint it exposes and prometheus scrapes
 ## Configuring Alertmanager
 
-In order to integrate with COS Alerter you need to a heartbeat rule to Prometheus and Add a route to the Alertmanager config
+In order to integrate with COS Alerter you need to add a heartbeat rule to Prometheus and add a route to the Alertmanager config.
 
 If you are using the Canonical Observability Stack, the alert rule is already created for you. If not, you can use a rule similar to the following:
 ```yaml
