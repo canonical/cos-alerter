@@ -31,7 +31,8 @@ def sigint(_, __):  # pragma: no cover
 def sigterm(_, __):  # pragma: no cover
     """Signal handler for graceful shutdown on sigterm."""
     logger.info("Shutting down.")
-    AlerterState.dump_and_exit()
+    AlerterState.dump_and_pause()
+    sys.exit()
 
 
 def sigusr1(_, __):  # pragma: no cover

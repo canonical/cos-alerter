@@ -173,8 +173,12 @@ class AlerterState:
                     ]
 
     @staticmethod
-    def dump_and_exit():
-        """Dump the state of the program and exit gracefully."""
+    def dump_and_pause():
+        """Dump the state of the program and exit gracefully.
+
+        This function acquires all the locks and never releases them, affectively pausing the
+        program.
+        """
         logger.info("Starting safe shutdown.")
         for client in state["clients"]:
             state["clients"][client]["lock"].acquire()
@@ -188,7 +192,6 @@ class AlerterState:
         }
         with config["state_file"].open("w") as f:
             json.dump(clients_without_locks, f)
-        sys.exit()
 
     @staticmethod
     def clients():
