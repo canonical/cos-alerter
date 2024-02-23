@@ -172,8 +172,11 @@ class AlerterState:
                         "notify_time"
                     ]
 
+    # This is difficult to test in unit tests because it acquires and does not release all of the
+    # locks. When integration tests have been solved we need to remove the "no cover" from this
+    # method.
     @staticmethod
-    def dump_and_pause():
+    def dump_and_pause():  # pragma: no cover
         """Dump the state of the program and exit gracefully.
 
         This function acquires all the locks and never releases them, affectively pausing the
