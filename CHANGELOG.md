@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Client state is now retained on a graceful shutdown (#66).
+
 ## [0.6.0] - 2023-11-30
 
 - Added badges to README.md (#62).
