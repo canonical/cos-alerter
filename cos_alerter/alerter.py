@@ -76,7 +76,7 @@ class Config:
         base_dir = xdg_base_dirs.xdg_state_home() / "cos_alerter"
         if not base_dir.exists():
             base_dir.mkdir(parents=True)
-        self.data["state_file"] = base_dir / "clients.state"
+        self.data["clients_file"] = base_dir / "clients.state"
 
 
 def deep_update(base: dict, new: typing.Optional[dict]):
@@ -161,10 +161,10 @@ class AlerterState:
             }
 
         # Recover any state that was dumped on last exit.
-        if config["state_file"].exists():
-            with config["state_file"].open() as f:
+        if config["clients_file"].exists():
+            with config["clients_file"].open() as f:
                 existing_clients = json.load(f)
-            config["state_file"].unlink()
+            config["clients_file"].unlink()
             for client in existing_clients:
                 if client in state["clients"]:
                     state["clients"][client]["alert_time"] = existing_clients[client]["alert_time"]
@@ -193,7 +193,7 @@ class AlerterState:
             }
             for client in state["clients"]
         }
-        with config["state_file"].open("w") as f:
+        with config["clients_file"].open("w") as f:
             json.dump(clients_without_locks, f)
 
     @staticmethod

@@ -173,8 +173,8 @@ def test_is_down_from_graceful_shutdown(monotonic_mock, fake_fs):
     with open("/etc/cos-alerter.yaml", "w") as f:
         yaml.dump(conf, f)
     config.reload()
-    fake_fs.create_file(config["state_file"])
-    with config["state_file"].open("w") as f:
+    fake_fs.create_file(config["clients_file"])
+    with config["clients_file"].open("w") as f:
         f.write('{"clientid1": {"alert_time": 500, "notify_time": null}}')
     monotonic_mock.return_value = 1000
     print("Hello Test")
