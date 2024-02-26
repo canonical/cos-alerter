@@ -166,6 +166,30 @@ def test_is_down_with_wait_for_first_connection(monotonic_mock, fake_fs):
 
 @freezegun.freeze_time("2023-01-01")
 @unittest.mock.patch("time.monotonic")
+def test_is_down_from_graceful_shutdown(monotonic_mock, fake_fs):
+    with open("/etc/cos-alerter.yaml") as f:
+        conf = yaml.safe_load(f)
+    conf["watch"]["wait_for_first_connection"] = True
+    with open("/etc/cos-alerter.yaml", "w") as f:
+        yaml.dump(conf, f)
+    config.reload()
+    fake_fs.create_file(config["clients_file"])
+    with config["clients_file"].open("w") as f:
+        f.write('{"clientid1": {"alert_time": 500, "notify_time": null}}')
+    monotonic_mock.return_value = 1000
+    print("Hello Test")
+    AlerterState.initialize()
+    state = AlerterState(clientid="clientid1")
+    with state:
+        print(list(AlerterState.clients()))
+        print(state.data)
+        assert state.is_down() is False
+        monotonic_mock.return_value = 2330
+        assert state.is_down() is True
+
+
+@freezegun.freeze_time("2023-01-01")
+@unittest.mock.patch("time.monotonic")
 def test_is_down(monotonic_mock, fake_fs):
     monotonic_mock.return_value = 1000
     AlerterState.initialize()

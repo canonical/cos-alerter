@@ -4,6 +4,7 @@
 """Main logic for COS Alerter."""
 
 import datetime
+import json
 import logging
 import os
 import sys
@@ -15,6 +16,7 @@ from pathlib import Path
 
 import apprise
 import durationpy
+import xdg_base_dirs
 from ruamel.yaml import YAML
 from ruamel.yaml.constructor import DuplicateKeyError
 
@@ -68,6 +70,13 @@ class Config:
         self.data["notify"]["repeat_interval"] = durationpy.from_str(
             self.data["notify"]["repeat_interval"]
         ).total_seconds()
+
+        # Static variables. We define them here so it is easy to expose them later as config
+        # values if needed.
+        base_dir = xdg_base_dirs.xdg_state_home() / "cos_alerter"
+        if not base_dir.exists():
+            base_dir.mkdir(parents=True)
+        self.data["clients_file"] = base_dir / "clients.state"
 
 
 def deep_update(base: dict, new: typing.Optional[dict]):
@@ -151,6 +160,42 @@ class AlerterState:
                 "notify_time": None,
             }
 
+        # Recover any state that was dumped on last exit.
+        if config["clients_file"].exists():
+            with config["clients_file"].open() as f:
+                existing_clients = json.load(f)
+            config["clients_file"].unlink()
+            for client in existing_clients:
+                if client in state["clients"]:
+                    state["clients"][client]["alert_time"] = existing_clients[client]["alert_time"]
+                    state["clients"][client]["notify_time"] = existing_clients[client][
+                        "notify_time"
+                    ]
+
+    # This is difficult to test in unit tests because it acquires and does not release all of the
+    # locks. When integration tests have been solved we need to remove the "no cover" from this
+    # method.
+    @staticmethod
+    def dump_and_pause():  # pragma: no cover
+        """Dump the state of the program and exit gracefully.
+
+        This function acquires all the locks and never releases them, effectively pausing the
+        program.
+        """
+        logger.info("Starting safe shutdown.")
+        for client in state["clients"]:
+            state["clients"][client]["lock"].acquire()
+        # Locks are not json serializable.
+        clients_without_locks = {
+            client: {
+                "alert_time": state["clients"][client]["alert_time"],
+                "notify_time": state["clients"][client]["notify_time"],
+            }
+            for client in state["clients"]
+        }
+        with config["clients_file"].open("w") as f:
+            json.dump(clients_without_locks, f)
+
     @staticmethod
     def clients():
         """Return a list of clientids."""
@@ -170,7 +215,12 @@ class AlerterState:
         """Determine if Alertmanager should be considered down based on the last alert."""
         if self.data["alert_time"] is None:
             return False
-        return time.monotonic() - self.data["alert_time"] > config["watch"]["down_interval"]
+        # We need to take the max of the alert and the start time, so that we only count time when
+        # cos-alerter was running.
+        return (
+            time.monotonic() - max(self.data["alert_time"], self.start_time)
+            > config["watch"]["down_interval"]
+        )
 
     def _recently_notified(self) -> bool:
         """Determine if a notification has been previously sent within the repeat interval."""
