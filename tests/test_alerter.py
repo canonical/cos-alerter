@@ -1,6 +1,7 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import os
 import textwrap
 import threading
 import unittest.mock
@@ -30,17 +31,13 @@ def test_config_default_empty_file(fake_fs):
 
 
 def test_file_not_found_error(fake_fs):
-
-    with unittest.mock.patch("cos_alerter.logger.critical") as mock_critical, unittest.mock.patch(
-        "sys.exit"
-    ) as mock_exit:
-
+    with unittest.mock.patch("cos_alerter.alerter.logger") as mock_logger:
+        os.unlink("/etc/cos-alerter.yaml")
         try:
             config.reload()
         except SystemExit as exc:
             assert exc.code == 1
-            mock_critical.assert_called_once_with("Config file not found. Exiting...")
-            mock_exit.assert_called_once_with(1)
+            mock_logger.critical.assert_called_once_with("Config file not found. Exiting...")
         else:
             assert False
 
