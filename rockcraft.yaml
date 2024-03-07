@@ -10,8 +10,6 @@ parts:
   cos-alerter:
     plugin: python
     source: .
-    python-packages:
-      - cos-alerter==0.8.0  # NOTE: Make sure this matches `version` above
     stage-packages:
       - python3-venv
 services:
