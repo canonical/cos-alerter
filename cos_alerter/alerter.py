@@ -46,16 +46,23 @@ class Config:
     def reload(self):
         """Reload config values from the disk."""
         yaml = YAML(typ="rt")
+
+        # Load default configuration
         with open(
             os.path.join(os.path.dirname(os.path.realpath(__file__)), "config-defaults.yaml")
         ) as f:
             self.data = yaml.load(f)
-        with open(self.path, "r") as f:
-            try:
+
+        # Load user configuration
+        try:
+            with open(self.path, "r") as f:
                 user_data = yaml.load(f)
-            except DuplicateKeyError:
-                logger.critical("Duplicate client IDs found in COS Alerter config. Exiting...")
-                sys.exit(1)
+        except FileNotFoundError:
+            logger.critical("Config file not found. Exiting...")
+            sys.exit(1)
+        except DuplicateKeyError:
+            logger.critical("Duplicate client IDs found in COS Alerter config. Exiting...")
+            sys.exit(1)
 
         # Validate that keys are valid SHA-512 hashes
         if user_data and user_data.get("watch", {}).get("clients"):
