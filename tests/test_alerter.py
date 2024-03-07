@@ -28,10 +28,12 @@ def test_config_default_empty_file(fake_fs):
     config.reload()
     assert config["watch"]["down_interval"] == 300
 
+
 def test_file_not_found_error(fake_fs):
 
-    with unittest.mock.patch("cos_alerter.logger.critical") as mock_critical, \
-         unittest.mock.patch("sys.exit") as mock_exit:
+    with unittest.mock.patch("cos_alerter.logger.critical") as mock_critical, unittest.mock.patch(
+        "sys.exit"
+    ) as mock_exit:
 
         try:
             config.reload()
@@ -41,6 +43,7 @@ def test_file_not_found_error(fake_fs):
             mock_exit.assert_called_once_with(1)
         else:
             assert False
+
 
 def test_duplicate_key_error(fake_fs):
     duplicate_config = """
