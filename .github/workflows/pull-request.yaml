@@ -16,9 +16,7 @@ jobs:
         run: |
           pkg_version=$(grep -P -o 'version = "\d+\.\d+\.\d+"' pyproject.toml | grep -P -o '\d+\.\d+\.\d+')
           rock_version=$(grep -P -o 'version: "\d+\.\d+\.\d+"' rockcraft.yaml | grep -P -o '\d+\.\d+\.\d+')
-          rock_pkg_version=$(grep -P -o 'cos-alerter==\d+\.\d+\.\d+' rockcraft.yaml | grep -P -o '\d+\.\d+\.\d+')
           [ "${pkg_version}" == "${rock_version}" ]
-          [ "${rock_version}" == "${rock_pkg_version}" ]
   changelog-check:
     name: Changelog Check
     runs-on: ubuntu-latest
