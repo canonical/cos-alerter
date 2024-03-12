@@ -46,7 +46,6 @@ jobs:
         sudo skopeo --insecure-policy copy oci-archive:$(realpath ./cos-alerter_*.rock) docker://ghcr.io/canonical/cos-alerter:latest --dest-creds "observability-noctua-bot:${{ secrets.OBSERVABILITY_NOCTUA_TOKEN }}"
         MINOR_VERSION=${VERSION%.*}
         sudo skopeo --insecure-policy copy oci-archive:$(realpath ./cos-alerter_*.rock) docker://ghcr.io/canonical/cos-alerter:$MINOR_VERSION --dest-creds "observability-noctua-bot:${{ secrets.OBSERVABILITY_NOCTUA_TOKEN }}"
-        fi
 
     - name: Install Syft
       run: |
