@@ -54,10 +54,3 @@ jobs:
           custom_tag: "${{ needs.version-check.outputs.new_version }}"
           tag_prefix: ""
           default_bump: false
-  rock:
-    uses: canonical/observability/.github/workflows/build-rock.yaml@main
-    needs: python-package
-    secrets: inherit
-    with:
-      rock-name: cos-alerter
-      tag-minor: true
