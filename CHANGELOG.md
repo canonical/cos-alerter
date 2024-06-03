@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.0] - 2024-05-30
 
-- Adding PagerDuty native support (#76).
+- Added PagerDuty native support (#76).
 
 
 ## [0.8.0] - 2024-03-07

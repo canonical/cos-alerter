@@ -215,12 +215,7 @@ class AlerterState:
         """Set the "last alert time" to right now."""
         # In case an instance was down, resolve the PagerDuty incident before resetting the last alert time
         if self.is_down():
-            pagerduty_destinations, _ = split_destinations()
-            handle_pagerduty_incidents(
-                incident_type="resolve",
-                dedup_key=f"{self.clientid}-{self.last_alert_datetime()}",
-                destinations_list=pagerduty_destinations,
-            )
+            self.resolve_existing_alerts()
         logger.debug("Resetting alert timeout for %s.", self.clientid)
         self.data["alert_time"] = time.monotonic()
 
@@ -284,14 +279,25 @@ class AlerterState:
         # Sending notifications can be a long operation so handle that in a separate thread.
         # This avoids interfering with the execution of the main loop.
         notify_thread = threading.Thread(
-            target=send_notifications,
+            target=send_all_notifications,
             kwargs={
                 "title": title,
                 "body": body,
+                "destinations": split_destinations(config["notify"]["destinations"]),
+                "incident_type": "trigger",
                 "dedup_key": f"{self.clientid}-{self.last_alert_datetime()}",
             },
         )
         notify_thread.start()
+
+    def resolve_existing_alerts(self):
+        """Resolves the current alerts."""
+        categorized_destinations = split_destinations(config["notify"]["destinations"])
+        handle_pagerduty_incidents(
+            incident_type="resolve",
+            dedup_key=f"{self.clientid}-{self.last_alert_datetime()}",
+            destinations=categorized_destinations["pagerduty"],
+        )
 
 
 def now_datetime():
@@ -305,37 +311,48 @@ def up_time():
     return time.monotonic() - state["start_time"]
 
 
-def split_destinations():
-    """Split destinations into PagerDuty and non-PagerDuty lists."""
-    pagerduty_destinations = [
-        source for source in config["notify"]["destinations"] if source.startswith("pagerduty")
-    ]
-    non_pagerduty_destinations = [
-        source for source in config["notify"]["destinations"] if not source.startswith("pagerduty")
-    ]
-    return pagerduty_destinations, non_pagerduty_destinations
+def split_destinations(destinations: list):
+    """Split destinations into categorized lists."""
+    categorized_destinations = {"standard": [], "pagerduty": []}
+
+    for source in destinations:
+        if source.startswith("pagerduty"):
+            categorized_destinations["pagerduty"].append(source)
+        else:
+            categorized_destinations["standard"].append(source)
+
+    return categorized_destinations
 
 
-def send_notifications(title: str, body: str, dedup_key: str):
+def send_all_notifications(
+    title: str, body: str, destinations: list, incident_type: str, dedup_key: str
+):
     """Send a notification to all receivers."""
+    send_standard_notifications(title=title, body=body, destinations=destinations["standard"])
+    handle_pagerduty_incidents(
+        incident_type=incident_type,
+        dedup_key=dedup_key,
+        destinations=destinations["pagerduty"],
+        incident_summary=body,
+    )
+
+
+def send_standard_notifications(title: str, body: str, destinations: list):
+    """Send a notification to all standard receivers."""
     # TODO: Since this is run in its own thread, we have to make sure we properly
     # log failures here.
-    pagerduty_destinations, non_pagerduty_destinations = split_destinations()
 
     # Send notifications to non-PagerDuty destinations
     sender = apprise.Apprise()
-    for source in non_pagerduty_destinations:
+    for source in destinations:
         sender.add(source)
     sender.notify(title=title, body=body)
-
-    # Send notifications to PagerDuty destinations
-    handle_pagerduty_incidents("trigger", dedup_key, pagerduty_destinations, body)
 
 
 def handle_pagerduty_incidents(
     incident_type: str,
     dedup_key: str,
-    destinations_list: list,
+    destinations: list,
     incident_summary: Optional[str] = None,
 ):
     """Handles PagerDuty incidents by triggering or resolving incidents based on the specified incident type.
@@ -343,10 +360,10 @@ def handle_pagerduty_incidents(
     Args:
         incident_type (str): The type of incident action to perform. Should be either 'trigger' or 'resolve'.
         dedup_key (str): The deduplication key to uniquely identify the incident.
-        destinations_list (list): List of destinations to handle PagerDuty incidents for.
+        destinations (list): List of destinations to handle PagerDuty incidents for.
         incident_summary (str, optional): A summary of the incident, used only when triggering an incident. Defaults to None.
     """
-    for source in destinations_list:
+    for source in destinations:
         integration_key = source.split("//")[1].split("@")[0]
         session = EventsAPISession(integration_key)
 
@@ -359,8 +376,10 @@ def handle_pagerduty_incidents(
 def send_test_notification():
     """Signal handler which sends a test email to all configured receivers."""
     logger.info("Sending test notifications.")
-    send_notifications(
+    send_all_notifications(
         title="COS-Alerter test email.",
         body="This is a test email automatically generated by COS-alerter.",
-        dedup_key="testkey",
+        destinations=split_destinations(config["notify"]["destinations"]),
+        incident_type="trigger",
+        dedup_key="test-dedup-key",
     )
