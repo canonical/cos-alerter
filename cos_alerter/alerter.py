@@ -13,7 +13,7 @@ import threading
 import time
 import typing
 from pathlib import Path
-from typing import Optional
+from typing import Dict, List, Optional
 
 import apprise
 import durationpy
@@ -311,7 +311,7 @@ def up_time():
     return time.monotonic() - state["start_time"]
 
 
-def split_destinations(destinations: list):
+def split_destinations(destinations: List[str]) -> Dict[str, List[str]]:
     """Split destinations into categorized lists."""
     categorized_destinations = {"standard": [], "pagerduty": []}
 
@@ -325,7 +325,7 @@ def split_destinations(destinations: list):
 
 
 def send_all_notifications(
-    title: str, body: str, destinations: list, incident_type: str, dedup_key: str
+    title: str, body: str, destinations: Dict[str, List[str]], incident_type: str, dedup_key: str
 ):
     """Send a notification to all receivers."""
     send_standard_notifications(title=title, body=body, destinations=destinations["standard"])
