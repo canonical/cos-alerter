@@ -4,6 +4,7 @@
 DESTINATIONS = [
     "mailtos://user:pass@domain/?to=example-0@example.com,example-1@example.com",
     "slack://xoxb-1234-1234-4ddbc191d40ee098cbaae6f3523ada2d/#general",
+    "pagerduty://integration-key@api-key",
 ]
 
 CONFIG = {

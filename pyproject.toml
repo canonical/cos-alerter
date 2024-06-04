@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cos-alerter"
-version = "0.8.0"
+version = "0.9.0"
 authors = [
   { name="Dylan Stephano-Shachter", email="dylan.stephano-shachter@canonical.com" }
 ]
@@ -28,6 +28,7 @@ dependencies = [
   "timeago~=1.0",
   "waitress~=2.1",
   "xdg-base-dirs~=6.0.1",
+  "pdpyras~=5.2.0"
 ]
 
 [project.urls]

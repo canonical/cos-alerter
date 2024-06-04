@@ -1,5 +1,5 @@
 name: cos-alerter
-version: '0.8.0'
+version: '0.9.0'
 summary: A watchdog alerting on alertmanager notification failures.
 license: Apache-2.0
 contact: simon.aronsson@canonical.com

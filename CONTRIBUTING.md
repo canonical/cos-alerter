@@ -28,6 +28,7 @@ cp config-defaults.yaml cos-alerter.yaml
 docker run -p 8080:8080 --rm --mount type=bind,source="$(pwd)"/cos-alerter.yaml,target=/etc/cos-alerter.yaml,readonly -it cos-alerter:0.2.0
 ```
 
+
 ## Run Tests
 
 * `pip install tox`
