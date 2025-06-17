@@ -61,7 +61,7 @@ def alive():
     client_info = config["watch"]["clients"].get(clientid)
     if not client_info:
         logger.warning("Request %s specified an unknown clientid.", request.url)
-        return 'Clientid {params["clientid"]} not found. ', 404
+        return 'Client ID not found. ', 404
 
     # Hash the key and compare with the stored hashed key
     hashed_key = hashlib.sha512(key.encode()).hexdigest()
