@@ -45,3 +45,8 @@ log_level: "info"
 # The address to listen on for http traffic.
 # Format HOST:PORT
 web_listen_addr: "0.0.0.0:8080"
+
+# Optional: Separate address for the dashboard UI.
+# If not set, dashboard will be served on the same address as the API.
+# Format HOST:PORT
+# dashboard_listen_addr: "127.0.0.1:8081"

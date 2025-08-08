@@ -12,12 +12,39 @@ from prometheus_flask_exporter import PrometheusMetrics
 
 from .alerter import AlerterState, config, now_datetime
 
-app = Flask(__name__)
-metrics = PrometheusMetrics(app)
 logger = logging.getLogger(__name__)
 
 
-@app.route("/", methods=["GET"])
+def create_app(include_api: bool = True, include_dashboard: bool = True) -> Flask:
+    """Create Flask app with specified endpoints.
+
+    Args:
+        include_api: Whether to include the /alive API endpoint
+        include_dashboard: Whether to include the / dashboard endpoint
+
+    Returns:
+        Flask application instance
+    """
+    app = Flask(__name__)
+    metrics = PrometheusMetrics(app)
+
+    if include_dashboard:
+        @app.route("/", methods=["GET"])
+        def dashboard_route():
+            return dashboard()
+
+    if include_api:
+        @app.route("/alive", methods=["POST"])
+        def alive_route():
+            return alive()
+
+    @app.before_request
+    def log_request_wrapper():
+        return log_request()
+
+    return app
+
+
 def dashboard():
     """Endpoint for the COS Alerter dashboard."""
     clients = []
@@ -40,7 +67,6 @@ def dashboard():
     return render_template("dashboard.html", clients=clients)
 
 
-@app.route("/alive", methods=["POST"])
 def alive():
     """Endpoint for Alertmanager instances to send their heartbeat alerts."""
     # TODO Decide if we should validate the request.
@@ -74,7 +100,6 @@ def alive():
     return "Success!"
 
 
-@app.before_request
 def log_request():
     """Log every HTTP request."""
     logger.info(
@@ -82,3 +107,7 @@ def log_request():
         request.method,
         request.url,
     )
+
+
+# Backwards compatibility - existing imports will still work
+app = create_app()

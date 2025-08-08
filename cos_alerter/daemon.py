@@ -16,7 +16,7 @@ import waitress
 
 from .alerter import AlerterState, config, send_test_notification, up_time
 from .logging import LEVELS, init_logging
-from .server import app
+from .server import create_app
 
 logger = logging.getLogger("cos_alerter.daemon")
 
@@ -98,21 +98,65 @@ def main(run_for: Optional[int] = None, argv: List[str] = sys.argv):
         if not str(e) == "signal only works in main thread of the main interpreter":
             raise  # pragma: no cover
 
-    # Start the web server.
+    # Start the web server(s).
     # Starting in a thread rather than a new process allows waitress to inherit the log level
     # from the daemon. It also facilitates communication over memory rather than files.
     # clear_untrusted_proxy_headers is set to suppress a DeprecationWarning.
-    server_thread = threading.Thread(
-        target=waitress.serve,
-        args=(app,),
-        kwargs={
-            "clear_untrusted_proxy_headers": True,
-            "listen": config["web_listen_addr"],
-        },
-    )
-    server_thread.daemon = True  # Makes this thread exit when the main thread exits.
-    logger.info("Starting the web server thread.")
-    server_thread.start()
+
+    # Check if split mode is enabled (dashboard_listen_addr is configured)
+    try:
+        dashboard_addr = config["dashboard_listen_addr"]
+    except KeyError:
+        dashboard_addr = None
+    if dashboard_addr:
+        # Split mode: separate API and dashboard servers
+        logger.info("Starting microservice mode - API server on %s, dashboard on %s", 
+                   config["web_listen_addr"], dashboard_addr)
+
+        # API server
+        api_app = create_app(include_api=True, include_dashboard=False)
+        api_server_thread = threading.Thread(
+            target=waitress.serve,
+            args=(api_app,),
+            kwargs={
+                "clear_untrusted_proxy_headers": True,
+                "listen": config["web_listen_addr"],
+            },
+        )
+        api_server_thread.daemon = True
+        api_server_thread.start()
+        logger.info("Started API server thread on %s", config["web_listen_addr"])
+
+        # Dashboard server
+        dashboard_app = create_app(include_api=False, include_dashboard=True)
+        dashboard_server_thread = threading.Thread(
+            target=waitress.serve,
+            args=(dashboard_app,),
+            kwargs={
+                "clear_untrusted_proxy_headers": True,
+                "listen": dashboard_addr,
+            },
+        )
+        dashboard_server_thread.daemon = True
+        dashboard_server_thread.start()
+        logger.info("Started dashboard server thread on %s", dashboard_addr)
+
+    else:
+        # Combined mode: single server with both endpoints (backwards compatible)
+        logger.info("Starting monolith mode - App served on %s",
+                   config["web_listen_addr"])
+        app = create_app(include_api=True, include_dashboard=True)
+        server_thread = threading.Thread(
+            target=waitress.serve,
+            args=(app,),
+            kwargs={
+                "clear_untrusted_proxy_headers": True,
+                "listen": config["web_listen_addr"],
+            },
+        )
+        server_thread.daemon = True
+        server_thread.start()
+        logger.info("Started server thread on %s", config["web_listen_addr"])
 
     for clientid in config["watch"]["clients"]:
         client_thread = threading.Thread(target=client_loop, args=(clientid,))
