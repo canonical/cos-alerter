@@ -142,7 +142,7 @@ def main(run_for: Optional[int] = None, argv: List[str] = sys.argv):
         logger.info("Started dashboard server thread on %s", dashboard_addr)
 
     else:
-        # Combined mode: single server with both endpoints (backwards compatible)
+        # Combined mode: single server with both api and dashboard
         logger.info("Starting monolith mode - App served on %s",
                    config["web_listen_addr"])
         app = create_app(include_api=True, include_dashboard=True)
