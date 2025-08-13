@@ -110,8 +110,11 @@ def main(run_for: Optional[int] = None, argv: List[str] = sys.argv):
         dashboard_addr = None
     if dashboard_addr:
         # Split mode: separate API and dashboard servers
-        logger.info("Starting microservice mode - API server on %s, dashboard on %s", 
-                   config["web_listen_addr"], dashboard_addr)
+        logger.info(
+            "Starting microservice mode - API server on %s, dashboard on %s",
+            config["web_listen_addr"],
+            dashboard_addr,
+        )
 
         # API server
         api_app = create_app(include_api=True, include_dashboard=False)
@@ -143,8 +146,7 @@ def main(run_for: Optional[int] = None, argv: List[str] = sys.argv):
 
     else:
         # Combined mode: single server with both api and dashboard
-        logger.info("Starting monolith mode - App served on %s",
-                   config["web_listen_addr"])
+        logger.info("Starting monolith mode - App served on %s", config["web_listen_addr"])
         app = create_app(include_api=True, include_dashboard=True)
         server_thread = threading.Thread(
             target=waitress.serve,

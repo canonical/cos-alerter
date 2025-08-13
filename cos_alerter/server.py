@@ -26,14 +26,16 @@ def create_app(include_api: bool = True, include_dashboard: bool = True) -> Flas
         Flask application instance
     """
     app = Flask(__name__)
-    metrics = PrometheusMetrics(app)
+    metrics = PrometheusMetrics(app)  # noqa: F841
 
     if include_dashboard:
+
         @app.route("/", methods=["GET"])
         def dashboard_route():
             return dashboard()
 
     if include_api:
+
         @app.route("/alive", methods=["POST"])
         def alive_route():
             return alive()

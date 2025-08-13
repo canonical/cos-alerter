@@ -116,7 +116,7 @@ def test_multiple_key_values(flask_client, fake_fs, state_init):
 def test_create_app_api_only(fake_fs, state_init):
     app_instance = create_app(include_api=True, include_dashboard=False)
     client = app_instance.test_client()
-    
+
     # Only API endpoint should be available
     assert client.get("/").status_code == 404
     assert client.post("/alive", query_string=PARAMS).status_code == 200
@@ -125,7 +125,7 @@ def test_create_app_api_only(fake_fs, state_init):
 def test_create_app_dashboard_only(fake_fs, state_init):
     app_instance = create_app(include_api=False, include_dashboard=True)
     client = app_instance.test_client()
-    
+
     # Only dashboard endpoint should be available
     assert client.get("/").status_code == 200
     assert client.post("/alive", query_string=PARAMS).status_code == 404
