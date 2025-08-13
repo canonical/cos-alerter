@@ -58,7 +58,7 @@ jobs:
       - name: Run Checks
         run: tox -e test,slow-tests
       - name: Upload .coverage
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage
           path: .coverage
@@ -74,7 +74,7 @@ jobs:
       - name: Install Dependencies
         run: python3 -m pip install tox
       - name: Download .coverage
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: coverage
       - name: Run Checks
