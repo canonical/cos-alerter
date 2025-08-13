@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## CI - updates
+
+- Fixed deprecated job versions in the CI
+
 ## [0.9.0] - 2024-05-30
 
 - Added PagerDuty native support (#76).
