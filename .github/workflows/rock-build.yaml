@@ -55,12 +55,12 @@ jobs:
       run: syft $(realpath ./cos-alerter_*.rock) -o spdx-json=cos-alerter.sbom.json
 
     - name: Upload SBOM
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: cos-alerter-sbom
         path: "cos-alerter.sbom.json"
     - name: Upload locally built ROCK artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: cos-alerter-rock
         path: "cos-alerter_*.rock"
