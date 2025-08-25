@@ -9,13 +9,14 @@ from helpers import CONFIG
 from werkzeug.datastructures import MultiDict
 
 from cos_alerter.alerter import AlerterState, config
-from cos_alerter.server import app, create_app
+from cos_alerter.server import create_app
 
 PARAMS = {"clientid": "clientid1", "key": "clientkey1"}
 
 
 @pytest.fixture
 def flask_client():
+    app = create_app()
     return app.test_client()
 
 

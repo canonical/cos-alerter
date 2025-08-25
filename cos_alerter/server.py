@@ -109,7 +109,3 @@ def log_request():
         request.method,
         request.url,
     )
-
-
-# Backwards compatibility - existing imports will still work
-app = create_app()

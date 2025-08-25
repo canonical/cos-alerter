@@ -80,6 +80,13 @@ class Config:
             self.data["notify"]["repeat_interval"]
         ).total_seconds()
 
+        # if dashboard address key is missing, set it to None
+        dashboard_addr = None
+        try:
+            dashboard_addr = self.data["dashboard_listen_addr"]
+        except KeyError:
+            self.data["dashboard_listen_addr"] = dashboard_addr
+
         # Static variables. We define them here so it is easy to expose them later as config
         # values if needed.
         base_dir = xdg_base_dirs.xdg_state_home() / "cos_alerter"
