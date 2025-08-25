@@ -9,13 +9,14 @@ from helpers import CONFIG
 from werkzeug.datastructures import MultiDict
 
 from cos_alerter.alerter import AlerterState, config
-from cos_alerter.server import app
+from cos_alerter.server import create_app
 
 PARAMS = {"clientid": "clientid1", "key": "clientkey1"}
 
 
 @pytest.fixture
 def flask_client():
+    app = create_app()
     return app.test_client()
 
 
@@ -111,3 +112,21 @@ def test_multiple_key_values(flask_client, fake_fs, state_init):
     )
     assert response.status_code == 400
     assert len(response.data) > 0
+
+
+def test_create_app_api_only(fake_fs, state_init):
+    app_instance = create_app(include_api=True, include_dashboard=False)
+    client = app_instance.test_client()
+
+    # Only API endpoint should be available
+    assert client.get("/").status_code == 404
+    assert client.post("/alive", query_string=PARAMS).status_code == 200
+
+
+def test_create_app_dashboard_only(fake_fs, state_init):
+    app_instance = create_app(include_api=False, include_dashboard=True)
+    client = app_instance.test_client()
+
+    # Only dashboard endpoint should be available
+    assert client.get("/").status_code == 200
+    assert client.post("/alive", query_string=PARAMS).status_code == 404
