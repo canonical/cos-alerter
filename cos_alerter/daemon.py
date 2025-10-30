@@ -59,15 +59,24 @@ def parse_args(args: List[str]) -> argparse.Namespace:
     return parser.parse_args(args=args)
 
 
-def client_loop(clientid):
+def client_loop(clientid, stop_event: threading.Event):
     """Run the main loop for the specified client."""
     # Main loop
+    thread_id = threading.get_ident()
+    logger.debug(f"Worker thread {thread_id} starting for client {clientid}")
     state = AlerterState(clientid=clientid)
+    logger.debug(
+        f"Worker thread {thread_id} created AlerterState with start_time={state.start_time}"
+    )
     while True:
+        if stop_event.is_set():
+            logger.debug(f"Stop event received. Exiting thread {thread_id}")
+            break
         with state:
             logger.debug("Checking Alertmanager status.")
             if state.is_down():
                 logger.debug("Alertmanager is down.")
+                logger.debug(f"Worker thread {thread_id} calling notify() for {clientid}")
                 state.notify()
         time.sleep(1)
 
@@ -106,6 +115,7 @@ def main(run_for: Optional[int] = None, argv: List[str] = sys.argv):
 
     dashboard_listen_addr = config["dashboard_listen_addr"]
     web_listen_addr = config["web_listen_addr"]
+    servers = []
 
     if dashboard_listen_addr:
         logger.info(
@@ -116,54 +126,57 @@ def main(run_for: Optional[int] = None, argv: List[str] = sys.argv):
 
         # API server
         api_app = create_app(include_api=True, include_dashboard=False)
-        api_server_thread = threading.Thread(
-            target=waitress.serve,
-            args=(api_app,),
-            kwargs={
-                "clear_untrusted_proxy_headers": True,
-                "listen": web_listen_addr,
-            },
+        api_server = waitress.create_server(
+            api_app,
+            clear_untrusted_proxy_headers=True,
+            listen=web_listen_addr,
         )
+        servers.append(api_server)
+        api_server_thread = threading.Thread(target=api_server.run)
         api_server_thread.daemon = True
         api_server_thread.start()
 
         # Dashboard server
         dashboard_app = create_app(include_api=False, include_dashboard=True)
-        dashboard_server_thread = threading.Thread(
-            target=waitress.serve,
-            args=(dashboard_app,),
-            kwargs={
-                "clear_untrusted_proxy_headers": True,
-                "listen": dashboard_listen_addr,
-            },
+        dashboard_server = waitress.create_server(
+            dashboard_app,
+            clear_untrusted_proxy_headers=True,
+            listen=dashboard_listen_addr,
         )
+        servers.append(dashboard_server)
+        dashboard_server_thread = threading.Thread(target=dashboard_server.run)
         dashboard_server_thread.daemon = True
         dashboard_server_thread.start()
 
     else:
         logger.info("Starting API server and dashboard on %s", config["web_listen_addr"])
         app = create_app(include_api=True, include_dashboard=True)
-        server_thread = threading.Thread(
-            target=waitress.serve,
-            args=(app,),
-            kwargs={
-                "clear_untrusted_proxy_headers": True,
-                "listen": web_listen_addr,
-            },
+        server = waitress.create_server(
+            app,
+            clear_untrusted_proxy_headers=True,
+            listen=web_listen_addr,
         )
+        servers.append(server)
+        server_thread = threading.Thread(target=server.run)
         server_thread.daemon = True
         server_thread.start()
 
+    worker_stop_event = threading.Event()
     for clientid in config["watch"]["clients"]:
-        client_thread = threading.Thread(target=client_loop, args=(clientid,))
+        client_thread = threading.Thread(target=client_loop, args=(clientid, worker_stop_event))
         client_thread.daemon = True  # Makes this thread exit when the main thread exits.
         logger.info("Starting worker thread for client: %s", clientid)
         client_thread.start()
 
-    while True:
-        if run_for is not None and up_time() >= run_for:
-            return
-        time.sleep(1)
+    try:
+        while True:
+            if run_for is not None and up_time() >= run_for:
+                worker_stop_event.set()
+                break
+            time.sleep(1)
+    finally:
+        for server in servers:
+            server.close()
 
 
 if __name__ == "__main__":

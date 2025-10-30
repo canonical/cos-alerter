@@ -32,8 +32,9 @@ def init_logging(args):
     waitress_logger.propagate = False
     cos_logger.setLevel(level=log_level)
     waitress_logger.setLevel(level=log_level)
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter("%(asctime)s:%(levelname)s:%(name)s:%(message)s")
-    handler.setFormatter(formatter)
-    cos_logger.addHandler(handler)
-    waitress_logger.addHandler(handler)
+    if not cos_logger.handlers:
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter("%(asctime)s:%(levelname)s:%(name)s:%(message)s")
+        handler.setFormatter(formatter)
+        cos_logger.addHandler(handler)
+        waitress_logger.addHandler(handler)
