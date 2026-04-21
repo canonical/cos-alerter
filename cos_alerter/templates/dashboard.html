@@ -41,14 +41,31 @@
     <tbody>
       {% for client in clients %}
       <tr>
-        <td>{{ client["client_name"] }}</td>
-        {% if client["status"] == "up" %}
-        <td>✅ Up</td>
-        {% elif client["status"] == "down" %}
-        <td>❌ Down</td>
-        {% else %}
-        <td>❔ Unknown</td>
+        <td>
+          <a href="/clients/{{client['client_id']}}">
+          {{ client["client_name"] }}
+          </a>
+        </td>
+        <td>
+        {% if client["is_silenced"] %}
+          🔕
         {% endif %}
+
+        {% if client["status"] == "up" %}
+          ✅ Up
+        {% elif client["status"] == "down" %}
+          ❌ Down
+        {% else %}
+          ❔ Unknown
+        {% endif %}
+
+        {% if client["is_silenced"] %}
+          <br>
+          <small> Silenced until {{ client["silenced_until"] }} </small>
+          <br>
+          <small> Silencing stops {{ client["remaining_silence"] }} </small>
+        {% endif %}
+        </td>
         <td>{{ client["alert_time"] }}</td>
       </tr>
       {% endfor %}

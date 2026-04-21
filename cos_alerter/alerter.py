@@ -93,6 +93,7 @@ class Config:
         if not base_dir.exists():
             base_dir.mkdir(parents=True)
         self.data["clients_file"] = base_dir / "clients.state"
+        self.data["base_dir"] = base_dir
 
 
 def deep_update(base: dict, new: typing.Optional[dict]):
@@ -164,6 +165,7 @@ class AlerterState:
         #         "lock": <client_lock>,
         #         "alert_time": <alert_time>,
         #         "notify_time": <notify_time>,
+        #         "silenced_until": <optional_utc_timestamp>
         #     },
         #     ...
         # }
@@ -174,6 +176,7 @@ class AlerterState:
                 "lock": threading.Lock(),
                 "alert_time": alert_time,
                 "notify_time": None,
+                "silenced_until": None,
             }
 
         # Recover any state that was dumped on last exit.
@@ -187,6 +190,29 @@ class AlerterState:
                     state["clients"][client]["notify_time"] = existing_clients[client][
                         "notify_time"
                     ]
+
+        for client_id, client_state in state["clients"].items():
+            client_state["silenced_until"] = AlerterState._load_silenced_until(client_id)
+
+    @staticmethod
+    def _load_silenced_until(client_id: str) -> Optional[datetime.datetime]:
+        data_path: Path = config["base_dir"] / f"{client_id}.silenced_until.state"
+        if not data_path.exists():
+            return None
+        with data_path.open() as f:
+            silenced_until = json.load(f)
+        if silenced_until is None:
+            return None
+        return datetime.datetime.fromisoformat(silenced_until)
+
+    @staticmethod
+    def _save_silenced_until(client_id: str, silenced_until: Optional[datetime.datetime]):
+        data_path: Path = config["base_dir"] / f"{client_id}.silenced_until.state"
+        silence_value = None
+        if silenced_until is not None:
+            silence_value = silenced_until.isoformat()
+        with data_path.open("w") as f:
+            json.dump(silence_value, f)
 
     # This is difficult to test in unit tests because it acquires and does not release all of the
     # locks. When integration tests have been solved we need to remove the "no cover" from this
@@ -218,13 +244,46 @@ class AlerterState:
         for client in state["clients"]:
             yield client
 
+    def silence_until(self, utc_datatime: Optional[datetime.datetime]):
+        """Silence notifications until a given point in time."""
+        self.data["silenced_until"] = utc_datatime
+        AlerterState._save_silenced_until(self.clientid, utc_datatime)
+
+    def get_silenced_until(self) -> Optional[datetime.datetime]:
+        """Return the end of silencing in effect."""
+        return self.data.get("silenced_until")
+
+    def get_silenced_until_iso_str(self) -> Optional[str]:
+        """Return the end of silencing in effect as ISO formatted string."""
+        t = self.data.get("silenced_until")
+        if t is None:
+            return None
+        return t.isoformat()
+
+    def is_silenced(self) -> bool:
+        """Return if there is silencing in effect."""
+        silenced_until = self.get_silenced_until()
+        now = datetime.datetime.now(datetime.timezone.utc)
+        if silenced_until is None:
+            return False
+        return now < silenced_until
+
     def reset_alert_timeout(self):
         """Set the "last alert time" to right now."""
         # In case an instance was down, resolve the PagerDuty incident before resetting the last alert time
         if self.is_down():
             self.resolve_existing_alerts()
+            self.silence_until(None)
         logger.debug("Resetting alert timeout for %s.", self.clientid)
         self.data["alert_time"] = time.monotonic()
+
+    def should_act(self) -> bool:
+        """We should act if and only if the instance is down but not silenced."""
+        down = self.is_down()
+        silenced = self.is_silenced()
+        if down and silenced:
+            logger.debug("Alert manager is down but silenced.")
+        return down and not silenced
 
     def _set_notify_time(self):
         """Set the "last notification time" to right now."""
@@ -276,12 +335,10 @@ class AlerterState:
             else "ever"
         )
         title = "**Alertmanager is Down!**"
-        body = textwrap.dedent(
-            f"""
+        body = textwrap.dedent(f"""
             Your Alertmanager instance: {self.clientid} seems to be down!
             It has not alerted COS-Alerter {last_alert_string}.
-            """
-        )
+            """)
 
         # Sending notifications can be a long operation so handle that in a separate thread.
         # This avoids interfering with the execution of the main loop.

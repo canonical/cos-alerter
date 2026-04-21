@@ -66,8 +66,8 @@ def client_loop(clientid):
     while True:
         with state:
             logger.debug("Checking Alertmanager status.")
-            if state.is_down():
-                logger.debug("Alertmanager is down.")
+            if state.should_act():
+                logger.debug("Alertmanager is down and not silenced.")
                 state.notify()
         time.sleep(1)
 
