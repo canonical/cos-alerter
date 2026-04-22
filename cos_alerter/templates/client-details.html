@@ -1,55 +1,20 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
+{% block title_header %}
+    {{ client["client_name"] }}
+{% endblock %}
+{% block content %}
 
-<head>
-  <link rel="stylesheet" href="/static/vanilla-framework-version-3.14.0.min.css" />
-</head>
+    <h3>Silencing</h3>
+    <p>Prevent notifications from being sent. Set it to 0 to unsilence a currently silenced client.</p>
 
-<body>
-  <header id="navigation" class="p-navigation is-dark">
-    <div class="p-navigation__row">
-      <div class="p-navigation__banner">
-        <div class="p-navigation__tagged-logo">
-          <a class="p-navigation__link" href="#">
-            <div class="p-navigation__logo-tag">
-              <img class="p-navigation__logo-icon" src="https://assets.ubuntu.com/v1/82818827-CoF_white.svg" alt="">
-            </div>
-            <span class="p-navigation__logo-title" id="nav">
-              COS Alerter
-            </span>
-          </a>
-        </div>
-      </div>
-    </div>
-  </header>
+    <form action="/silence/{{client['client_id']}}" method="POST">
+        <label for="silence-duration-h">Silence duration (hours):</label>
+        <input type="number" id="silence-duration-h" name="silence-duration-h" step="1" min="0" size="3" required>
 
-  <div class="p-strip">
+        <label for="client-key">Client Key:</label>
+        <input type="password" id="client-key" name="client-key" required>
 
-    <div class="row">
-      <div class="col12">
-        <h2>{{ client["client_name"] }}</h2>
-      </div>
-    </div>
+        <button id="silence-subit" type="submit">Submit</button>
+    </form>
 
-    <div class="row">
-      <div class="col12">
-        <h3>Silencing</h3>
-        <p>Prevent notifications from being sent.</p>
-
-        <form action="/silence/{{client['client_id']}}" method="POST">
-            <label for="silence-duration-h">Silence duration (hours):</label>
-            <input type="number" id="silence-duration-h" name="silence-duration-h" step="1" min="0" size="3" required>
-            
-            <label for="client-key">Client Key:</label>
-            <input type="password" id="client-key" name="client-key" required>
-
-            <button type="submit">Submit</button>
-        </form>
-      </div>
-    </div>
-
-
-  </div>
-</body>
-
-</html>
+{% endblock %}

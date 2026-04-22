@@ -399,16 +399,17 @@ def test_should_act(is_silenced, is_down, expected, fake_fs):
         assert state.should_act() is expected
 
 
-@unittest.mock.patch.object(AlerterState, "is_down")
-@unittest.mock.patch.object(AlerterState, "resolve_existing_alerts")
 @freezegun.freeze_time("2026-04-17T15:33:23.690551+00:00")
-def test_unsilence_when_alertmanager_comes_up_again(
-    mock_is_down, mock_resolve_existing_alerts, fake_fs
+@unittest.mock.patch.object(AlerterState, "resolve_existing_alerts")
+@unittest.mock.patch.object(AlerterState, "is_down")
+@pytest.mark.parametrize("is_down", [True, False])
+def test_unsilence_on_reset_alert_timeout(
+    mock_is_down, mock_resolve_existing_alerts, is_down, fake_fs
 ):
     AlerterState.initialize()
     state = AlerterState(clientid="clientid1")
     state.silence_until(datetime.fromisoformat("2026-05-17T15:33:24.690551+00:00"))
     assert state.is_silenced() is True
-    mock_is_down.return_value = True
+    mock_is_down.return_value = is_down
     state.reset_alert_timeout()
     assert state.is_silenced() is False

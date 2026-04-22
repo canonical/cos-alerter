@@ -196,7 +196,7 @@ class AlerterState:
 
     @staticmethod
     def _load_silenced_until(client_id: str) -> Optional[datetime.datetime]:
-        data_path: Path = config["base_dir"] / f"{client_id}.silenced_until.state"
+        data_path: Path = config["base_dir"] / f"{client_id}.silenced"
         if not data_path.exists():
             return None
         with data_path.open() as f:
@@ -207,7 +207,7 @@ class AlerterState:
 
     @staticmethod
     def _save_silenced_until(client_id: str, silenced_until: Optional[datetime.datetime]):
-        data_path: Path = config["base_dir"] / f"{client_id}.silenced_until.state"
+        data_path: Path = config["base_dir"] / f"{client_id}.silenced"
         silence_value = None
         if silenced_until is not None:
             silence_value = silenced_until.isoformat()
@@ -273,7 +273,7 @@ class AlerterState:
         # In case an instance was down, resolve the PagerDuty incident before resetting the last alert time
         if self.is_down():
             self.resolve_existing_alerts()
-            self.silence_until(None)
+        self.silence_until(None)
         logger.debug("Resetting alert timeout for %s.", self.clientid)
         self.data["alert_time"] = time.monotonic()
 
