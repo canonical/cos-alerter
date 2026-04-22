@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added silencing feature
+- Fixed hash comparison to prevent timing analysis based attacks
+
 ## CI - updates
 
 - Fixed deprecated job versions in the CI

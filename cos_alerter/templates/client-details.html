@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title_header %}
+    {{ client["client_name"] }}
+{% endblock %}
+{% block content %}
+
+    <h3>Silencing</h3>
+    <p>Prevent notifications from being sent. Set it to 0 to unsilence a currently silenced client.</p>
+
+    <form action="/silence/{{client['client_id']}}" method="POST">
+        <label for="silence-duration-h">Silence duration (hours):</label>
+        <input type="number" id="silence-duration-h" name="silence-duration-h" step="1" min="0" size="3" required>
+
+        <label for="client-key">Client Key:</label>
+        <input type="password" id="client-key" name="client-key" required>
+
+        <button id="silence-subit" type="submit">Submit</button>
+    </form>
+
+{% endblock %}

@@ -1,35 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
+{% block title_header %}
+    Clients
+{% endblock %}
+{% block content%}
 
-<head>
-  <link rel="stylesheet" href="./static/vanilla-framework-version-3.14.0.min.css" />
-</head>
-
-<body>
-  <header id="navigation" class="p-navigation is-dark">
-    <div class="p-navigation__row">
-      <div class="p-navigation__banner">
-        <div class="p-navigation__tagged-logo">
-          <a class="p-navigation__link" href="#">
-            <div class="p-navigation__logo-tag">
-              <img class="p-navigation__logo-icon" src="https://assets.ubuntu.com/v1/82818827-CoF_white.svg" alt="">
-            </div>
-            <span class="p-navigation__logo-title" id="nav">
-              COS Alerter
-            </span>
-          </a>
-        </div>
-      </div>
-    </div>
-  </header>
-  <div class="p-strip">
-    <div class="row">
-      <div class="col12">
-        <h2>Clients</h2>
-      </div>
-    </div>
-  <div class="row">
-  <div class="col12">
   <table>
     <thead>
       <tr>
@@ -41,22 +15,33 @@
     <tbody>
       {% for client in clients %}
       <tr>
-        <td>{{ client["client_name"] }}</td>
-        {% if client["status"] == "up" %}
-        <td>✅ Up</td>
-        {% elif client["status"] == "down" %}
-        <td>❌ Down</td>
-        {% else %}
-        <td>❔ Unknown</td>
+        <td>
+          <a href="/clients/{{client['client_id']}}">
+          {{ client["client_name"] }}
+          </a>
+        </td>
+        <td>
+        {% if client["is_silenced"] %}
+          🔕
         {% endif %}
+
+        {% if client["status"] == "up" %}
+          ✅ Up
+        {% elif client["status"] == "down" %}
+          ❌ Down
+        {% else %}
+          ❔ Unknown
+        {% endif %}
+
+        {% if client["is_silenced"] %}
+          <br>
+          <small title="Silenced until {{ client['silenced_until'] }}"> Silencing stops {{ client["remaining_silence"] }} </small>
+        {% endif %}
+        </td>
         <td>{{ client["alert_time"] }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
-</div>
-</div>
-</div>
-</body>
 
-</html>
+{% endblock %}

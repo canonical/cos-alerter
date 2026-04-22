@@ -3,6 +3,7 @@
 
 import copy
 
+import freezegun
 import pytest
 import yaml
 from helpers import CONFIG
@@ -130,3 +131,78 @@ def test_create_app_dashboard_only(fake_fs, state_init):
     # Only dashboard endpoint should be available
     assert client.get("/").status_code == 200
     assert client.post("/alive", query_string=PARAMS).status_code == 404
+
+
+def test_client_details_work(fake_fs):
+    AlerterState.initialize()
+    app_instance = create_app(include_api=True, include_dashboard=True)
+    client = app_instance.test_client()
+    assert client.get("/clients/clientid1").status_code == 200
+
+
+def test_client_details_with_bad_clientid(fake_fs):
+    AlerterState.initialize()
+    app_instance = create_app(include_api=True, include_dashboard=True)
+    client = app_instance.test_client()
+    assert client.get("/clients/clientidXXX").status_code == 404
+
+
+def test_silence_client_wrong_clientid(fake_fs):
+    AlerterState.initialize()
+    app_instance = create_app(include_api=True, include_dashboard=True)
+    client = app_instance.test_client()
+    response = client.post(
+        "/silence/clientidXXX", data={"client-key": "clientkey1", "silence-duration-h": 5}
+    )
+    assert response.status_code == 404
+
+
+def test_silence_client_missing_key(fake_fs):
+    AlerterState.initialize()
+    app_instance = create_app(include_api=True, include_dashboard=True)
+    client = app_instance.test_client()
+    response = client.post("/silence/clientid1", data={"silence-duration-h": 5})
+    assert response.status_code == 401
+
+
+def test_silence_client_wrong_key(fake_fs):
+    AlerterState.initialize()
+    app_instance = create_app(include_api=True, include_dashboard=True)
+    client = app_instance.test_client()
+    response = client.post(
+        "/silence/clientid1", data={"client-key": "bad-key", "silence-duration-h": 5}
+    )
+    assert response.status_code == 401
+
+
+def test_silence_client_invalid_duration(fake_fs):
+    AlerterState.initialize()
+    app_instance = create_app(include_api=True, include_dashboard=True)
+    client = app_instance.test_client()
+    response = client.post(
+        "/silence/clientid1", data={"client-key": "clientkey1", "silence-duration-h": "a day"}
+    )
+    assert response.status_code == 400
+
+
+def test_silence_client_missing_duration(fake_fs):
+    AlerterState.initialize()
+    app_instance = create_app(include_api=True, include_dashboard=True)
+    client = app_instance.test_client()
+    response = client.post("/silence/clientid1", data={"client-key": "clientkey1"})
+    assert response.status_code == 400
+
+
+@freezegun.freeze_time("2026-04-17T15:33:23.690551+00:00")
+def test_silence_client_works(fake_fs):
+    AlerterState.initialize()
+    app_instance = create_app(include_api=True, include_dashboard=True)
+    client = app_instance.test_client()
+    response = client.post(
+        "/silence/clientid1", data={"client-key": "clientkey1", "silence-duration-h": 5}
+    )
+    assert response.status_code == 302  # it is redirected
+    assert (
+        AlerterState("clientid1").get_silenced_until_iso_str()
+        == "2026-04-17T20:33:23.690551+00:00"
+    )
