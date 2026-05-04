@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added silencing feature
 - Fixed hash comparison to prevent timing analysis based attacks
+- A note on secure deployments
 
 ## CI - updates
 
