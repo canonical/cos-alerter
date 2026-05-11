@@ -65,3 +65,9 @@ cos-alerter
 ### Development Builds
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for running development builds.
+
+## Security Considerations
+
+To keep the codebase focused, COS Alerter does not natively encrypt traffic. Additionally, it does not restrict access to the dashboard to avoid providing a false sense of security. It is highly recommended to use a [reverse proxy](https://docs.nginx.com/nginx/admin-guide/web-server/reverse-proxy/) with [Basic Auth](https://docs.nginx.com/nginx/admin-guide/security-controls/configuring-http-basic-authentication/) and [HTTPS](https://docs.nginx.com/nginx/admin-guide/security-controls/terminating-ssl-http/) to secure the deployment.
+
+Alternatively, running the dashboard and the API endpoints on different IP:PORT pairs is also possible. The dashboard can listen on localhost, requiring an SSH tunnel to enforce authenticated access.
