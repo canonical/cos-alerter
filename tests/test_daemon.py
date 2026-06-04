@@ -11,13 +11,29 @@ import apprise
 import pytest
 import yaml
 
-from cos_alerter.alerter import config
-from cos_alerter.daemon import main
+from cos_alerter.alerter import AlerterState, config
+from cos_alerter.daemon import client_loop, main
 
 DESTINATIONS = [
     "mailtos://user:pass@domain/?to=example-0@example.com,example-1@example.com",
     "slack://xoxb-1234-1234-4ddbc191d40ee098cbaae6f3523ada2d/#general",
 ]
+
+WATCH = {
+    "down_interval": "4s",
+    "wait_for_first_connection": False,
+    "clients": {
+        "clientid1": {
+            "key": "822295b207a0b73dd4690b60a03c55599346d44aef3da4cf28c3296eadb98b2647ae18863cc3ae8ae5574191b60360858982fd8a8d176c0edf646ce6eee24ef9",
+            "name": "Instance Name 1",
+        },
+    },
+}
+
+NOTIFY = {
+    "destinations": DESTINATIONS,
+    "repeat_interval": "4s",
+}
 
 
 @pytest.fixture
@@ -26,21 +42,27 @@ def mock_fs(fake_fs):
         f.write(
             yaml.dump(
                 {
-                    "watch": {
-                        "down_interval": "4s",
-                        "wait_for_first_connection": False,
-                        "clients": {
-                            "clientid1": {
-                                "key": "822295b207a0b73dd4690b60a03c55599346d44aef3da4cf28c3296eadb98b2647ae18863cc3ae8ae5574191b60360858982fd8a8d176c0edf646ce6eee24ef9",
-                                "name": "Instance Name 1",
-                            },
-                        },
-                    },
-                    "notify": {
-                        "destinations": DESTINATIONS,
-                        "repeat_interval": "4s",
-                    },
+                    "watch": WATCH,
+                    "notify": NOTIFY,
                     "log_level": "info",
+                }
+            )
+        )
+    config.set_path("/etc/cos-alerter.yaml")
+    config.reload()
+    return fake_fs
+
+
+@pytest.fixture
+def mock_fs_dashboard_addr(fake_fs):
+    with open("/etc/cos-alerter.yaml", "w") as f:
+        f.write(
+            yaml.dump(
+                {
+                    "watch": WATCH,
+                    "notify": NOTIFY,
+                    "log_level": "info",
+                    "dashboard_listen_addr": "127.0.0.1:8081",
                 }
             )
         )
@@ -85,3 +107,21 @@ def test_main(notify_mock, add_mock, mock_fs):
 def test_log_level_arg(mock_fs):
     main(run_for=0, argv=["cos-alerter", "--log-level", "DEBUG"])
     assert logging.getLogger("cos_alerter").getEffectiveLevel() == logging.DEBUG
+
+
+@unittest.mock.patch.object(AlerterState, "notify")
+@unittest.mock.patch.object(AlerterState, "should_act", return_value=True)
+@unittest.mock.patch("cos_alerter.daemon.time.sleep", side_effect=StopIteration)
+def test_client_loop_when_should_act(sleep_mock, should_act_mock, notify_mock, mock_fs):
+    AlerterState.initialize()  # We need to initialize the state before calling client_loop
+    with pytest.raises(StopIteration):
+        client_loop("clientid1")
+    should_act_mock.assert_called_once()
+    notify_mock.assert_called_once()
+
+
+@unittest.mock.patch("cos_alerter.daemon.create_app")
+@unittest.mock.patch("cos_alerter.daemon.waitress.serve")
+def test_main_with_dashboard_addr(waitress_serve_mock, create_app_mock, mock_fs_dashboard_addr):
+    main(run_for=0, argv=["cos-alerter"])
+    assert create_app_mock.call_count == 2  # Called once for API and once for dashboard
