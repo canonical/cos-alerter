@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed deprecated job versions in the CI
 ## [0.10.0] - 2025-08-12
 
-- API and dashboard can now run on separate addresses (#46).
+- API and dashboard can now run on separate addresses (#85).
 
 ## [0.9.0] - 2024-05-30
 
