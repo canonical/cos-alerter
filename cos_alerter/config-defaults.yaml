@@ -42,6 +42,16 @@ notify:
 # Levels available: critical, error, warning, info, debug
 log_level: "info"
 
+# Require the client key when silencing a client from the dashboard.
+# When the dashboard is already protected by external authentication, requiring
+# the per-client key can be redundant. Set this to false to skip the check and
+# assume that only authenticated users can reach the dashboard.
+# WARNING: When set to false, anyone able to reach the dashboard can silence
+# clients. For this reason COS Alerter requires the dashboard to be served on a
+# separate address (dashboard_listen_addr) from the API (web_listen_addr) when
+# this option is disabled.
+require_silence_key: true
+
 # The address to listen on for http traffic.
 # Format HOST:PORT
 web_listen_addr: "0.0.0.0:8080"

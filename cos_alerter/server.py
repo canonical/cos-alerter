@@ -137,7 +137,11 @@ def client_details(client_id):
     """Return a page with client-level features."""
     if client_id not in config["watch"]["clients"]:
         return f"Clientid {client_id} not found.", 404
-    return render_template("client-details.html", client=get_client_details(client_id))
+    return render_template(
+        "client-details.html",
+        client=get_client_details(client_id),
+        require_silence_key=config["require_silence_key"],
+    )
 
 
 def silence_client(client_id):
@@ -145,9 +149,12 @@ def silence_client(client_id):
     if client_id not in config["watch"]["clients"]:
         return f"Clientid {client_id} not found.", 404
 
-    key = request.form.get("client-key")
-    if not _is_key_correct(client_id, key):
-        return "Invalid credentials", 401
+    # When the dashboard is protected by external authentication the per-client
+    # key check can be disabled via the "require_silence_key" config option.
+    if config["require_silence_key"]:
+        key = request.form.get("client-key")
+        if not _is_key_correct(client_id, key):
+            return "Invalid credentials", 401
 
     silence_period_h = request.form.get("silence-duration-h", type=int)
     if silence_period_h is None:

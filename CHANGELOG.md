@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - Added silencing feature
+- Added `require_silence_key` option to optionally skip the client key check when silencing from an already authenticated dashboard (#94)
 - Fixed hash comparison to prevent timing analysis based attacks
 - A note on secure deployments
 - Improved test coverage for `daemon.py` (`client_loop` when should_act is True and `main` with dashboard address)
