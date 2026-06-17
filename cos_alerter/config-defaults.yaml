@@ -47,9 +47,8 @@ log_level: "info"
 # the per-client key can be redundant. Set this to false to skip the check and
 # assume that only authenticated users can reach the dashboard.
 # WARNING: When set to false, anyone able to reach the dashboard can silence
-# clients. For this reason COS Alerter requires the dashboard to be served on a
-# separate address (dashboard_listen_addr) from the API (web_listen_addr) when
-# this option is disabled.
+# clients. Only disable this if access to the dashboard is already restricted to
+# trusted users.
 require_silence_key: true
 
 # The address to listen on for http traffic.
