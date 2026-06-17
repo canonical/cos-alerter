@@ -122,42 +122,12 @@ def test_require_silence_key_defaults_true(fake_fs):
     assert config["require_silence_key"] is True
 
 
-def test_silence_key_disabled_with_separate_addresses(fake_fs):
-    conf = yaml.dump(
-        {
-            "require_silence_key": False,
-            "web_listen_addr": "0.0.0.0:8080",
-            "dashboard_listen_addr": "127.0.0.1:8081",
-        }
-    )
+def test_require_silence_key_can_be_disabled(fake_fs):
+    conf = yaml.dump({"require_silence_key": False})
     with open("/etc/cos-alerter.yaml", "w") as f:
         f.write(conf)
     config.reload()
     assert config["require_silence_key"] is False
-
-
-def test_silence_key_disabled_without_dashboard_addr_exits(fake_fs):
-    conf = yaml.dump({"require_silence_key": False})
-    with open("/etc/cos-alerter.yaml", "w") as f:
-        f.write(conf)
-    with pytest.raises(SystemExit) as exc:
-        config.reload()
-    assert exc.value.code == 1
-
-
-def test_silence_key_disabled_same_host_exits(fake_fs):
-    conf = yaml.dump(
-        {
-            "require_silence_key": False,
-            "web_listen_addr": "0.0.0.0:8080",
-            "dashboard_listen_addr": "0.0.0.0:8081",
-        }
-    )
-    with open("/etc/cos-alerter.yaml", "w") as f:
-        f.write(conf)
-    with pytest.raises(SystemExit) as exc:
-        config.reload()
-    assert exc.value.code == 1
 
 
 @freezegun.freeze_time("2023-01-01")

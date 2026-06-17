@@ -87,26 +87,6 @@ class Config:
         except KeyError:
             self.data["dashboard_listen_addr"] = dashboard_addr
 
-        # When the silence key check is disabled, anyone able to reach the dashboard
-        # can silence clients. Require the dashboard to be served on a separate
-        # address from the API so it can be isolated behind authentication.
-        if not self.data["require_silence_key"]:
-            if not self.data["dashboard_listen_addr"]:
-                logger.critical(
-                    "require_silence_key is disabled but no dashboard_listen_addr is set. "
-                    "The dashboard must listen on a separate address from the API. Exiting..."
-                )
-                sys.exit(1)
-            web_host = _listen_host(self.data["web_listen_addr"])
-            dashboard_host = _listen_host(self.data["dashboard_listen_addr"])
-            if web_host == dashboard_host:
-                logger.critical(
-                    "require_silence_key is disabled but the dashboard and API listen on the "
-                    "same address (%s). They must listen on different addresses. Exiting...",
-                    web_host,
-                )
-                sys.exit(1)
-
         # Static variables. We define them here so it is easy to expose them later as config
         # values if needed.
         base_dir = xdg_base_dirs.xdg_state_home() / "cos_alerter"
@@ -114,11 +94,6 @@ class Config:
             base_dir.mkdir(parents=True)
         self.data["clients_file"] = base_dir / "clients.state"
         self.data["base_dir"] = base_dir
-
-
-def _listen_host(addr: str) -> str:
-    """Return the host portion of a "HOST:PORT" listen address."""
-    return addr.rsplit(":", 1)[0]
 
 
 def deep_update(base: dict, new: typing.Optional[dict]):
