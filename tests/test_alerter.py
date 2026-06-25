@@ -118,6 +118,18 @@ def test_config_default_override(fake_fs):
     assert config["watch"]["down_interval"] == 60
 
 
+def test_require_silence_key_defaults_true(fake_fs):
+    assert config["require_silence_key"] is True
+
+
+def test_require_silence_key_can_be_disabled(fake_fs):
+    conf = yaml.dump({"require_silence_key": False})
+    with open("/etc/cos-alerter.yaml", "w") as f:
+        f.write(conf)
+    config.reload()
+    assert config["require_silence_key"] is False
+
+
 @freezegun.freeze_time("2023-01-01")
 @unittest.mock.patch("time.monotonic")
 def test_initialize(monotonic_mock, fake_fs):
