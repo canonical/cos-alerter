@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Detailed contributor's guide
 - Added silencing feature
 - Fixed hash comparison to prevent timing analysis based attacks
 - A note on secure deployments
