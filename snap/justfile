@@ -1,0 +1,18 @@
+set allow-duplicate-recipes
+set allow-duplicate-variables
+import? 'snaps.just'
+
+# This snap lives in a 'snap/' folder rather than a '<name>-snap' repo, so the
+# name can't be derived from the folder name; set it explicitly.
+snap_name := "cos-alerter"
+
+[private]
+@default:
+  just --list
+  echo ""
+  echo "For help with a specific recipe, run: just --usage <recipe>"
+
+# No-op: this snap's upstream lives in the same repository, so there is nothing to fetch
+[group("maintenance")]
+@update source_repo="":
+  echo "✓ Skipped: {{snap_name}} upstream lives in this repository"

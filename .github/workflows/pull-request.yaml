@@ -15,8 +15,10 @@ jobs:
       - name: Check All Versions Match
         run: |
           pkg_version=$(grep -P -o 'version = "\d+\.\d+\.\d+"' pyproject.toml | grep -P -o '\d+\.\d+\.\d+')
-          rock_version=$(grep -P -o 'version: "\d+\.\d+\.\d+"' rockcraft.yaml | grep -P -o '\d+\.\d+\.\d+')
+          rock_version=$(grep -P -o 'version: "\d+\.\d+\.\d+"' rock/*/rockcraft.yaml | grep -P -o '\d+\.\d+\.\d+' | sort -uV | tail -n1)
+          snap_version=$(grep -P -o "version: '\d+\.\d+\.\d+'" snap/latest/snap/snapcraft.yaml | grep -P -o '\d+\.\d+\.\d+')
           [ "${pkg_version}" == "${rock_version}" ]
+          [ "${pkg_version}" == "${snap_version}" ]
   changelog-check:
     name: Changelog Check
     runs-on: ubuntu-latest
@@ -87,3 +89,17 @@ jobs:
           name: coverage
       - name: Run Checks
         run: tox -e coverage
+
+  pull-request-rock:
+    name: PR for rock
+    uses: canonical/observability/.github/workflows/rock-pull-request.yaml@v2
+    secrets: inherit
+    with:
+      rock-path: rock
+
+  pull-request-snap:
+    name: PR for snap
+    uses: canonical/observability/.github/workflows/snap-pull-request.yaml@v2
+    secrets: inherit
+    with:
+      snap-path: snap

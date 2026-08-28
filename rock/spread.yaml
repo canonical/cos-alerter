@@ -1,0 +1,39 @@
+project: rock
+
+backends:
+  craft:
+    type: craft
+    systems:
+      - ubuntu-24.04:
+      #- ubuntu-22.04:
+
+suites:
+  spread/general/:
+    summary: General integration tests
+    environment:
+      # Goss environment
+      GOSS_OPTS: "--retry-timeout=60s"
+      GOSS_FILES_STRATEGY: cp
+      DGOSS_TEMP_DIR: "$HOME"
+
+    prepare: |
+      # Install dependencies
+      sudo snap install docker
+      curl -fsSL https://goss.rocks/install | sh
+
+      # For 'rockcraft.skopeo'
+      sudo snap install --classic rockcraft
+
+      # Wait for docker daemon to come online
+      for i in $(seq 1 10); do docker info >/dev/null 2>&1 && break || sleep 2; done
+
+      # Load the rock into docker
+      sudo rockcraft.skopeo --insecure-policy copy "oci-archive:$CRAFT_ARTIFACT" docker-daemon:rockcraft-test:latest
+      
+    restore: |
+      docker image rm --force rockcraft-test:latest
+
+exclude:
+  - .git
+
+kill-timeout: 1h
