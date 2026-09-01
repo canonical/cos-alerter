@@ -1,0 +1,76 @@
+set allow-duplicate-recipes
+set allow-duplicate-variables
+import? 'rocks.just'
+
+# This rock lives in a 'rock/' folder rather than a '<name>-rock' repo, so the
+# name can't be derived from the folder name; set it explicitly.
+rock_name := "cos-alerter"
+
+# cos-alerter's source lives at the repository root rather than in its own
+# upstream repo, so rockcraft can't reach it directly: 'rockcraft pack' only
+# mounts the version folder (e.g. 'rock/0.10') into the build instance, and a
+# relative 'source: ../..' path would try to escape that mount and resolve to
+# a path *inside* the build environment instead of the host repository,
+# causing 'Permission denied' errors when it stumbles on device files like
+# '/dev/zero'. So the repository source is staged into a gitignored '_src'
+# folder inside the version folder before packing/testing, and 'rockcraft.yaml'
+# points its part at 'source: _src' instead.
+_src_files := "cos_alerter LICENSE MANIFEST.in pyproject.toml setup.py"
+
+[private]
+_stage-src version=latest_version:
+  rm -rf "{{version}}/_src"
+  mkdir -p "{{version}}/_src"
+  cd .. && cp -r {{_src_files}} "rock/{{version}}/_src/"
+
+[private]
+_clean-src version=latest_version:
+  rm -rf "{{version}}/_src"
+
+[private]
+@default:
+  just --list
+  echo ""
+  echo "For help with a specific recipe, run: just --usage <recipe>"
+
+# No-op: this rock's upstream lives in the same repository, so there is nothing to fetch
+[group("maintenance")]
+@update:
+  echo "✓ Skipped: {{rock_name}} upstream lives in this repository"
+
+# No-op: this rock is not published to OCI Factory
+[group("release")]
+release-oci-factory version=latest_version support="minor" risk="stable":
+  @echo "✓ Skipped: {{rock_name}} is not published to OCI Factory"
+
+# Push an OCI image to a local registry
+[private]
+@push-to-registry version=latest_version:
+  which -s docker || { echo "× docker not found"; exit 1; }
+  test -f "{{version}}"/*.rock || just pack "{{version}}"
+  echo "Pushing {{version}} to local docker registry"
+  cd {{version}}; sudo rockcraft.skopeo --insecure-policy copy --dest-tls-verify=false "oci-archive:$(ls *.rock)" docker-daemon:rockcraft-test:latest
+  echo "✓ Rock pushed to local registry under 'rockcraft-test:latest'"
+
+# Pack a rock of a specific version (major.minor folder)
+[group("dev")]
+pack version=latest_version:
+  #!/usr/bin/env bash
+  set -e
+  just _stage-src "{{version}}"
+  trap 'just _clean-src "{{version}}"' EXIT
+  cd "{{version}}" && rockcraft pack
+
+# Test a rock with `rockcraft test`
+[group("dev")]
+test version=latest_version:
+  #!/usr/bin/env bash
+  set -e
+  just _stage-src "{{version}}"
+  trap 'just _clean-src "{{version}}"' EXIT
+  cp spread.yaml "{{version}}/spread.yaml"
+  if [ -f goss.yaml ]; then cp goss.yaml "{{version}}/goss.yaml"; fi
+  test_exit=0; (cd "{{version}}" && rockcraft test) || test_exit=$?
+  rm -f "{{version}}/spread.yaml" "{{version}}/goss.yaml"
+  if [ "$test_exit" -ne 0 ]; then echo "× rockcraft test failed"; exit "$test_exit"; fi
+  echo "✓ 'rockcraft test' passed."

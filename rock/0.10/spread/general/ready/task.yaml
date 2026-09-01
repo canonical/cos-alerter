@@ -1,0 +1,7 @@
+summary: Run goss tests
+
+environment:
+  GOSS_FILE: "../../../goss.yaml"
+
+execute: |
+  dgoss run rockcraft-test:latest

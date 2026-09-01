@@ -1,10 +1,14 @@
-name: Push to Main
+name: Release
 
 on:
   workflow_dispatch: {}
   push:
     branches:
       - main
+
+permissions:
+  contents: write
+  packages: write
 
 jobs:
   version-check:
@@ -53,3 +57,17 @@ jobs:
           custom_tag: "${{ needs.version-check.outputs.new_version }}"
           tag_prefix: ""
           default_bump: false
+
+  release-rock:
+    name: Release rock to GHCR
+    uses: canonical/observability/.github/workflows/rock-release-dev.yaml@v2
+    secrets: inherit
+    with:
+      rock-path: rock
+
+  release-snap:
+    name: Release snap
+    uses: canonical/observability/.github/workflows/snap-release.yaml@v2
+    secrets: inherit
+    with:
+      snap-path: snap

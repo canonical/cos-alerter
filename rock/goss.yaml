@@ -1,0 +1,8 @@
+file:
+  /usr/bin/cos-alerter:
+    exists: true
+
+command:
+  cos-alerter --help:
+    exec: /usr/bin/cos-alerter --help
+    exit-status: 0

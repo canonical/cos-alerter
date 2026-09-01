@@ -1,0 +1,38 @@
+summary: Verify the cos-alerter snap starts and stays active
+
+environment:
+  SNAP_NAME: cos-alerter
+  MAX_RETRIES: "12"
+  INTERVAL: "5"
+
+prepare: |
+  mkdir -p /etc
+  cat > /etc/cos-alerter.yaml <<'EOF'
+  clients: {}
+  EOF
+  snap install "${CRAFT_ARTIFACT}" --dangerous
+  snap connect cos-alerter:etc-cos-alerter
+  snap start cos-alerter.daemon
+
+execute: |
+  COUNT=0
+
+  while [ "$COUNT" -lt "$MAX_RETRIES" ]; do
+    state=$(snap services "${SNAP_NAME}.daemon" | tail -1 | awk '{print $3}')
+    if [ "$state" != "active" ]; then
+      echo "❌ ${SNAP_NAME}.daemon is not active (state=$state)"
+      exit 1
+    fi
+    echo "[${COUNT}] ${SNAP_NAME}.daemon is active ..."
+    COUNT=$((COUNT + 1))
+    sleep "$INTERVAL"
+  done
+
+  echo "✅ ${SNAP_NAME}.daemon is active and running!"
+
+restore: |
+  snap remove "${SNAP_NAME}" --purge || true
+
+debug: |
+  snap logs "${SNAP_NAME}" -n 50 || true
+  journalctl -xe --no-pager | tail -50 || true

@@ -8,3 +8,4 @@ venv
 *.snap
 **/__pycache__
 *.rock
+**/_src

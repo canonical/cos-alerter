@@ -2,14 +2,14 @@ name: cos-alerter
 summary: A liveness checker for self-monitoring.
 description: Receive regular pings from the cos stack and alert when they stop.
 version: "0.10.0"
-base: ubuntu@22.04
+base: ubuntu@24.04
 license: Apache-2.0
 platforms:
   amd64:
 parts:
   cos-alerter:
     plugin: python
-    source: .
+    source: _src
     stage-packages:
       - python3-venv
 services:

@@ -1,0 +1,75 @@
+set allow-duplicate-recipes
+set allow-duplicate-variables
+import? 'snaps.just'
+
+# This snap lives in a 'snap/' folder rather than a '<name>-snap' repo, so the
+# name can't be derived from the folder name; set it explicitly.
+snap_name := "cos-alerter"
+
+# cos-alerter's source lives at the repository root rather than in its own
+# upstream repo, so snapcraft can't reach it directly: 'snapcraft pack' only
+# mounts the version folder (e.g. 'snap/latest') into the build instance, and
+# a relative 'source: ../..' path would try to escape that mount and resolve
+# to a path *inside* the build environment instead of the host repository,
+# causing 'Permission denied' errors when it stumbles on device files like
+# '/dev/zero'. So the repository source is staged into a gitignored '_src'
+# folder inside the version folder before packing/testing, and
+# 'snap/snapcraft.yaml' points its part at 'source: _src' instead.
+_src_files := "cos_alerter LICENSE MANIFEST.in pyproject.toml setup.py"
+
+[private]
+_stage-src version="latest":
+  rm -rf "{{version}}/_src"
+  mkdir -p "{{version}}/_src"
+  cd .. && cp -r {{_src_files}} "snap/{{version}}/_src/"
+
+[private]
+_clean-src version="latest":
+  rm -rf "{{version}}/_src"
+
+[private]
+@default:
+  just --list
+  echo ""
+  echo "For help with a specific recipe, run: just --usage <recipe>"
+
+# No-op: this snap's upstream lives in the same repository, so there is nothing to fetch
+[group("maintenance")]
+@update source_repo="":
+  echo "✓ Skipped: {{snap_name}} upstream lives in this repository"
+
+# Pack a snap locally for a specific version and architecture
+[group("dev")]
+pack version="latest" build_for="amd64":
+  #!/usr/bin/env bash
+  set -e
+  just _stage-src "{{version}}"
+  trap 'just _clean-src "{{version}}"' EXIT
+  cd "{{version}}" && snapcraft pack --build-for="{{build_for}}"
+
+# Test a snap with `snapcraft test`
+[group("dev")]
+test version="latest":
+  #!/usr/bin/env bash
+  set -e
+  just _stage-src "{{version}}"
+  trap 'just _clean-src "{{version}}"' EXIT
+  cp spread.yaml "{{version}}/spread.yaml"
+  test_exit=0; (cd "{{version}}" && snapcraft test) || test_exit=$?
+  rm -f "{{version}}/spread.yaml"
+  if [ "$test_exit" -ne 0 ]; then echo "× snapcraft test failed"; exit "$test_exit"; fi
+  echo "✓ 'snapcraft test' passed."
+
+# Remote-build a snap for a specific version and architecture
+[group("release")]
+remote-build version="latest" build_for="amd64":
+  #!/usr/bin/env bash
+  set -e
+  just _stage-src "{{version}}"
+  trap 'just _clean-src "{{version}}"' EXIT
+  cd "{{version}}"
+  # snapcraft remote-build requires a git repository to be present
+  git init
+  echo "Starting remote build for {{snap_name}} {{version}} ({{build_for}}) ..."
+  snapcraft remote-build --build-for="{{build_for}}" --launchpad-accept-public-upload
+  echo "✓ Remote build complete. Snap files are in {{version}}/"
