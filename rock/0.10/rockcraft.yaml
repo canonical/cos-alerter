@@ -9,7 +9,7 @@ platforms:
 parts:
   cos-alerter:
     plugin: python
-    source: ../..
+    source: _src
     stage-packages:
       - python3-venv
 services:

@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded the rock and snap base to `ubuntu@24.04`/`core24` to work
   around an AppArmor/LXD incompatibility breaking CI on `core22`/
   `ubuntu@22.04` bases
+- Fixed rock/snap builds failing in CI with a `Permission denied` error
+  by no longer reaching outside the packed folder for the Python
+  package source; it is now staged into a local, gitignored folder
+  before packing
 
 ## [0.10.0] - 2025-08-12
 
