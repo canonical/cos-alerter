@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adopted the Observability rock/snap blueprints: rock and snap sources now
   live in `rock/` and `snap/` folders, and their CI workflows call the
   shared reusable workflows from `canonical/observability`
+- Upgraded the rock and snap base to `ubuntu@24.04`/`core24` to work
+  around an AppArmor/LXD incompatibility breaking CI on `core22`/
+  `ubuntu@22.04` bases
+
 ## [0.10.0] - 2025-08-12
 
 - API and dashboard can now run on separate addresses (#85).

@@ -11,7 +11,7 @@ description: |
   By leveraging an always-firing alert rule routed specifically to cos-alerter, you'll
   be alerted if the pings stop happening - meaning your alertmanager is likely malfunctioning.
 
-base: core22
+base: core24
 grade: stable
 confinement: strict
 compression: lzo
