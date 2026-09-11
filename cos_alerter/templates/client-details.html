@@ -11,8 +11,10 @@
         <label for="silence-duration-h">Silence duration (hours):</label>
         <input type="number" id="silence-duration-h" name="silence-duration-h" step="1" min="0" size="3" required>
 
-        <label for="client-key">Client Key:</label>
-        <input type="password" id="client-key" name="client-key" required>
+        {% if require_silence_key %}
+            <label for="client-key">Client Key:</label>
+            <input type="password" id="client-key" name="client-key" required>
+        {% endif %}
 
         <button id="silence-subit" type="submit">Submit</button>
     </form>

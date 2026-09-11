@@ -206,3 +206,49 @@ def test_silence_client_works(fake_fs):
         AlerterState("clientid1").get_silenced_until_iso_str()
         == "2026-04-17T20:33:23.690551+00:00"
     )
+
+
+def _reload_with_silence_key_disabled():
+    conf = copy.deepcopy(CONFIG)
+    conf["require_silence_key"] = False
+    conf["web_listen_addr"] = "0.0.0.0:8080"
+    conf["dashboard_listen_addr"] = "127.0.0.1:8081"
+    with open("/etc/cos-alerter.yaml", "w") as f:
+        f.write(yaml.dump(conf))
+    config.reload()
+
+
+@freezegun.freeze_time("2026-04-17T15:33:23.690551+00:00")
+def test_silence_client_without_key_when_disabled(fake_fs):
+    _reload_with_silence_key_disabled()
+    AlerterState.initialize()
+    app_instance = create_app(include_api=True, include_dashboard=True)
+    client = app_instance.test_client()
+    response = client.post("/silence/clientid1", data={"silence-duration-h": 5})
+    assert response.status_code == 302  # it is redirected
+    assert (
+        AlerterState("clientid1").get_silenced_until_iso_str()
+        == "2026-04-17T20:33:23.690551+00:00"
+    )
+
+
+def test_silence_client_ignores_key_when_disabled(fake_fs):
+    _reload_with_silence_key_disabled()
+    AlerterState.initialize()
+    app_instance = create_app(include_api=True, include_dashboard=True)
+    client = app_instance.test_client()
+    # Even a wrong key is accepted because the check is disabled.
+    response = client.post(
+        "/silence/clientid1", data={"client-key": "bad-key", "silence-duration-h": 5}
+    )
+    assert response.status_code == 302
+
+
+def test_client_details_hides_key_field_when_disabled(fake_fs):
+    _reload_with_silence_key_disabled()
+    AlerterState.initialize()
+    app_instance = create_app(include_api=True, include_dashboard=True)
+    client = app_instance.test_client()
+    response = client.get("/clients/clientid1")
+    assert response.status_code == 200
+    assert b'name="client-key"' not in response.data
