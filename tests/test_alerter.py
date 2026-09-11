@@ -1,6 +1,7 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import logging
 import os
 import textwrap
 import threading
@@ -248,6 +249,42 @@ def test_is_down_with_future_alert_time(monotonic_mock, fake_fs):
         assert state.is_down() is False
         monotonic_mock.return_value = 400
         assert state.is_down() is True
+
+
+@freezegun.freeze_time("2023-01-01")
+@unittest.mock.patch("time.monotonic")
+def test_is_down_with_negative_monotonic_clock(monotonic_mock, fake_fs):
+    # time.monotonic() may read negative, and the sentinel must still sit behind the start.
+    config.reload()
+    fake_fs.create_file(config["clients_file"])
+    with config["clients_file"].open("w") as f:
+        f.write('{"clientid1": {"alert_time": 1672534800, "notify_time": 1672534800}}')
+    monotonic_mock.return_value = -1000
+    AlerterState.initialize()
+    state = AlerterState(clientid="clientid1")
+    with state:
+        assert state.is_down() is False
+        assert state._recently_notified() is False
+        monotonic_mock.return_value = -605
+        assert state.is_down() is True
+
+
+@freezegun.freeze_time("2023-01-01")
+@unittest.mock.patch("time.monotonic")
+def test_restore_time_warns_for_both_times(monotonic_mock, fake_fs, caplog):
+    # Both restored times name themselves and the client when they are discarded.
+    config.reload()
+    fake_fs.create_file(config["clients_file"])
+    future = 1672534800 + 3600
+    with config["clients_file"].open("w") as f:
+        f.write('{"clientid1": {"alert_time": %d, "notify_time": %d}}' % (future, future))
+    monotonic_mock.return_value = 1000
+    with caplog.at_level(logging.WARNING):
+        AlerterState.initialize()
+
+    warnings = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
+    assert any("last alert time for clientid1" in m for m in warnings)
+    assert any("last notify time for clientid1" in m for m in warnings)
 
 
 @freezegun.freeze_time("2023-01-01")
