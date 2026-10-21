@@ -1,6 +1,7 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import copy
 import logging
 import subprocess
 import threading
@@ -54,6 +55,25 @@ def mock_fs(fake_fs):
 
 
 @pytest.fixture
+def real_fs(tmp_path, monkeypatch):
+    """Use a tmp folder for the test."""
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
+    config_path = tmp_path / "cos-alerter.yaml"
+    config_path.write_text(
+        yaml.dump({"watch": WATCH, "notify": NOTIFY, "log_level": "info"})
+    )
+    original_config = copy.deepcopy(config.__dict__)
+    config.set_path(str(config_path))
+    config.reload()
+
+    yield config_path
+
+    # Restore config so this test's tmp_path doesn't leak into other tests.
+    config.__dict__.clear()
+    config.__dict__.update(original_config)
+
+
+@pytest.fixture
 def mock_fs_dashboard_addr(fake_fs):
     with open("/etc/cos-alerter.yaml", "w") as f:
         f.write(
@@ -74,8 +94,10 @@ def mock_fs_dashboard_addr(fake_fs):
 @pytest.mark.slow
 @unittest.mock.patch.object(apprise.Apprise, "add")
 @unittest.mock.patch.object(apprise.Apprise, "notify")
-def test_main(notify_mock, add_mock, mock_fs):
-    main_thread = threading.Thread(target=main, kwargs={"run_for": 13, "argv": ["cos-alerter"]})
+def test_main(notify_mock, add_mock, real_fs):
+    main_thread = threading.Thread(
+        target=main, kwargs={"run_for": 13, "argv": ["cos-alerter", "--config", str(real_fs)]}
+    )
     try:
         main_thread.start()
         time.sleep(2)  # Should not be considered down yet.
