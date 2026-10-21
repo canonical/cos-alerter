@@ -59,9 +59,7 @@ def real_fs(tmp_path, monkeypatch):
     """Use a tmp folder for the test."""
     monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
     config_path = tmp_path / "cos-alerter.yaml"
-    config_path.write_text(
-        yaml.dump({"watch": WATCH, "notify": NOTIFY, "log_level": "info"})
-    )
+    config_path.write_text(yaml.dump({"watch": WATCH, "notify": NOTIFY, "log_level": "info"}))
     original_config = copy.deepcopy(config.__dict__)
     config.set_path(str(config_path))
     config.reload()
