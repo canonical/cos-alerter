@@ -1,7 +1,6 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-import copy
 import logging
 import subprocess
 import threading
@@ -60,15 +59,9 @@ def real_fs(tmp_path, monkeypatch):
     monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
     config_path = tmp_path / "cos-alerter.yaml"
     config_path.write_text(yaml.dump({"watch": WATCH, "notify": NOTIFY, "log_level": "info"}))
-    original_config = copy.deepcopy(config.__dict__)
     config.set_path(str(config_path))
     config.reload()
-
-    yield config_path
-
-    # Restore config so this test's tmp_path doesn't leak into other tests.
-    config.__dict__.clear()
-    config.__dict__.update(original_config)
+    return config_path
 
 
 @pytest.fixture
