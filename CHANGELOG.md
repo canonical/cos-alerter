@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fix hanging test on Ubuntu 26.04
 - Detailed contributor's guide
 - Added silencing feature
 - Added `require_silence_key` option to optionally skip the client key check when silencing from an already authenticated dashboard (#94)
