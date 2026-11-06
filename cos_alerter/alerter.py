@@ -113,6 +113,8 @@ def deep_update(base: dict, new: typing.Optional[dict]):
 config = Config()
 state = {}
 
+STATE_FILE_VERSION = 1
+
 
 class AlerterState:
     """Class representing the state of COS Alerter.
@@ -182,7 +184,20 @@ class AlerterState:
         # Recover any state that was dumped on last exit.
         if config["clients_file"].exists():
             with config["clients_file"].open() as f:
-                existing_clients = json.load(f)
+                data = json.load(f)
+            version = data.get("version")
+            if version == STATE_FILE_VERSION:
+                existing_clients = data["clients"]
+            else:
+                logger.critical(
+                    "State file %s has version %s, which this version of COS Alerter "
+                    "does not understand. It may have been written by an older or newer "
+                    "release. Delete the file or pass --discard-state to start fresh. "
+                    "Exiting...",
+                    config["clients_file"],
+                    version,
+                )
+                sys.exit(1)
             config["clients_file"].unlink()
             for client in existing_clients:
                 if client in state["clients"]:
@@ -233,14 +248,24 @@ class AlerterState:
             state["clients"][client]["lock"].acquire()
         # Locks are not json serializable.
         clients_without_locks = {
-            client: {
-                "alert_time": to_utc_timestamp(state["clients"][client]["alert_time"]),
-                "notify_time": to_utc_timestamp(state["clients"][client]["notify_time"]),
-            }
-            for client in state["clients"]
+            "version": STATE_FILE_VERSION,
+            "clients": {
+                client: {
+                    "alert_time": to_utc_timestamp(state["clients"][client]["alert_time"]),
+                    "notify_time": to_utc_timestamp(state["clients"][client]["notify_time"]),
+                }
+                for client in state["clients"]
+            },
         }
         with config["clients_file"].open("w") as f:
             json.dump(clients_without_locks, f)
+
+    @staticmethod
+    def discard_saved_state():
+        """Delete all saved state files so the next initialize() starts fresh."""
+        config["clients_file"].unlink(missing_ok=True)
+        for silenced_file in config["base_dir"].glob("*.silenced"):
+            silenced_file.unlink()
 
     @staticmethod
     def clients():
