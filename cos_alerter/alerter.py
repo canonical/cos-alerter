@@ -223,10 +223,11 @@ class AlerterState:
             logger.critical(
                 "State file %s has version %s, which this version of COS Alerter "
                 "does not understand. It may have been written by an older or newer "
-                "release. Delete the file or pass --discard-state to start fresh. "
+                "release. Remove the state folder %s and start COS Alerter again. "
                 "Exiting...",
                 config["clients_file"],
                 version,
+                config["base_dir"],
             )
             sys.exit(1)
         config["clients_file"].unlink()
@@ -290,13 +291,6 @@ class AlerterState:
         }
         with config["clients_file"].open("w") as f:
             json.dump(clients_without_locks, f)
-
-    @staticmethod
-    def discard_saved_state():
-        """Delete all saved state files so the next initialize() starts fresh."""
-        config["clients_file"].unlink(missing_ok=True)
-        for silenced_file in config["base_dir"].glob("*.silenced"):
-            silenced_file.unlink()
 
     @staticmethod
     def clients():

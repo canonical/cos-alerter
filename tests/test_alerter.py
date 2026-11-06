@@ -339,6 +339,8 @@ def test_initialize_refuses_unknown_state_file_version(version, fake_fs):
         else:
             assert False
         mock_logger.critical.assert_called_once()
+        # The refusal tells the operator which state folder to remove.
+        assert str(config["base_dir"]) in str(mock_logger.critical.call_args)
     assert config["clients_file"].exists()  # Left for inspection.
 
 

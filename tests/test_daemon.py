@@ -122,25 +122,6 @@ def test_log_level_arg(mock_fs):
     assert logging.getLogger("cos_alerter").getEffectiveLevel() == logging.DEBUG
 
 
-@unittest.mock.patch("cos_alerter.daemon.create_app")
-@unittest.mock.patch("cos_alerter.daemon.waitress.serve")
-def test_discard_state_arg(waitress_serve_mock, create_app_mock, mock_fs):
-    # Version -1 is not a real format version, so this file is refused by any release;
-    # without --discard-state, main would exit with the file still on disk.
-    mock_fs.create_file(config["clients_file"])
-    with config["clients_file"].open("w") as f:
-        f.write('{"version": -1, "clients": {}}')
-    mock_fs.create_file(config["base_dir"] / "clientid1.silenced")
-    with (config["base_dir"] / "clientid1.silenced").open("w") as f:
-        f.write('"2030-01-01T00:00:00+00:00"')
-    main(run_for=0, argv=["cos-alerter", "--discard-state"])
-    assert not config["clients_file"].exists()
-    assert not (config["base_dir"] / "clientid1.silenced").exists()
-    state = AlerterState(clientid="clientid1")
-    with state:
-        assert state.get_silenced_until() is None  # The silence was discarded, not loaded.
-
-
 @unittest.mock.patch.object(AlerterState, "notify")
 @unittest.mock.patch.object(AlerterState, "should_act", return_value=True)
 @unittest.mock.patch("cos_alerter.daemon.time.sleep", side_effect=StopIteration)

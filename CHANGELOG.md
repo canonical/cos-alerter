@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed alert times pointing to the future after a reboot
 - Fixed notifications being silenced when `time.monotonic()` returns a negative value
 - `clients.state` now records its format version; files written by any other release are
-  rejected at startup, and `--discard-state` wipes all saved state and starts fresh
+  rejected at startup with a message naming the state folder to remove
 
 ## CI - updates
 
