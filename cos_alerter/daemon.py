@@ -56,6 +56,11 @@ def parse_args(args: List[str]) -> argparse.Namespace:
         default="/etc/cos-alerter.yaml",
         help="Path to config file. Defaults to /etc/cos-alerter.yaml",
     )
+    parser.add_argument(
+        "--discard-state",
+        action="store_true",
+        help="Discard all saved state files and start fresh.",
+    )
     return parser.parse_args(args=args)
 
 
@@ -84,6 +89,9 @@ def main(run_for: Optional[int] = None, argv: List[str] = sys.argv):
     config.set_path(args.config)
     config.reload()
     init_logging(args)
+    if args.discard_state:
+        logger.warning("Discarding saved state files (--discard-state was passed).")
+        AlerterState.discard_saved_state()
     AlerterState.initialize()
 
     # Observe signal handlers
