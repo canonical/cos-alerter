@@ -1,6 +1,7 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import json
 import logging
 import os
 import textwrap
@@ -31,6 +32,13 @@ def assert_notifications(notify_mock, add_mock, pd_mock, title, body, dedup_key)
     )
     notify_mock.assert_called_with(title=title, body=body)
     pd_mock.assert_called_with(source="cos-alerter", summary=body, dedup_key=dedup_key)
+
+
+def write_clients_file(fake_fs, clients):
+    """Write a version 1 state file containing the given clients."""
+    fake_fs.create_file(config["clients_file"])
+    with config["clients_file"].open("w") as f:
+        f.write(json.dumps({"version": 1, "clients": clients}))
 
 
 def test_config_gets_item(fake_fs):
@@ -214,9 +222,7 @@ def test_is_down_from_graceful_shutdown(monotonic_mock, fake_fs):
     with open("/etc/cos-alerter.yaml", "w") as f:
         yaml.dump(conf, f)
     config.reload()
-    fake_fs.create_file(config["clients_file"])
-    with config["clients_file"].open("w") as f:
-        f.write('{"clientid1": {"alert_time": 1672531000, "notify_time": null}}')
+    write_clients_file(fake_fs, {"clientid1": {"alert_time": 1672531000, "notify_time": None}})
     monotonic_mock.return_value = 1000
     print("Hello Test")
     AlerterState.initialize()
@@ -233,10 +239,8 @@ def test_is_down_from_graceful_shutdown(monotonic_mock, fake_fs):
 @unittest.mock.patch("time.monotonic")
 def test_is_down_after_reboot(monotonic_mock, fake_fs):
     config.reload()
-    fake_fs.create_file(config["clients_file"])
-    with config["clients_file"].open("w") as f:
-        # An alert was received ten minutes before this process started.
-        f.write('{"clientid1": {"alert_time": 1672530600, "notify_time": null}}')
+    # An alert was received ten minutes before this process started.
+    write_clients_file(fake_fs, {"clientid1": {"alert_time": 1672530600, "notify_time": None}})
     monotonic_mock.return_value = 5
     AlerterState.initialize()
     state = AlerterState(clientid="clientid1")
@@ -250,10 +254,8 @@ def test_is_down_after_reboot(monotonic_mock, fake_fs):
 @unittest.mock.patch("time.monotonic")
 def test_is_down_with_future_alert_time(monotonic_mock, fake_fs):
     config.reload()
-    fake_fs.create_file(config["clients_file"])
-    with config["clients_file"].open("w") as f:
-        # A raw monotonic reading, as older releases stored it.
-        f.write('{"clientid1": {"alert_time": 1672534800, "notify_time": null}}')
+    # The wall clock moved back between the last run and this one.
+    write_clients_file(fake_fs, {"clientid1": {"alert_time": 1672534800, "notify_time": None}})
     monotonic_mock.return_value = 5
     AlerterState.initialize()
     state = AlerterState(clientid="clientid1")
@@ -268,9 +270,9 @@ def test_is_down_with_future_alert_time(monotonic_mock, fake_fs):
 def test_is_down_with_negative_monotonic_clock(monotonic_mock, fake_fs):
     # time.monotonic() may read negative, and the sentinel must still sit behind the start.
     config.reload()
-    fake_fs.create_file(config["clients_file"])
-    with config["clients_file"].open("w") as f:
-        f.write('{"clientid1": {"alert_time": 1672534800, "notify_time": 1672534800}}')
+    write_clients_file(
+        fake_fs, {"clientid1": {"alert_time": 1672534800, "notify_time": 1672534800}}
+    )
     monotonic_mock.return_value = -1000
     AlerterState.initialize()
     state = AlerterState(clientid="clientid1")
@@ -286,10 +288,8 @@ def test_is_down_with_negative_monotonic_clock(monotonic_mock, fake_fs):
 def test_restore_time_warns_for_both_times(monotonic_mock, fake_fs, caplog):
     # Both restored times name themselves and the client when they are discarded.
     config.reload()
-    fake_fs.create_file(config["clients_file"])
     future = 1672534800 + 3600
-    with config["clients_file"].open("w") as f:
-        f.write('{"clientid1": {"alert_time": %d, "notify_time": %d}}' % (future, future))
+    write_clients_file(fake_fs, {"clientid1": {"alert_time": future, "notify_time": future}})
     monotonic_mock.return_value = 1000
     with caplog.at_level(logging.WARNING):
         AlerterState.initialize()
@@ -297,6 +297,66 @@ def test_restore_time_warns_for_both_times(monotonic_mock, fake_fs, caplog):
     warnings = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
     assert any("last alert time for clientid1" in m for m in warnings)
     assert any("last notify time for clientid1" in m for m in warnings)
+
+
+@freezegun.freeze_time("2023-01-01")
+@unittest.mock.patch("time.monotonic")
+def test_state_file_roundtrip_is_versioned(monotonic_mock, fake_fs):
+    monotonic_mock.return_value = 1000
+    AlerterState.initialize()
+    state = AlerterState(clientid="clientid1")
+    with state:
+        state.data["alert_time"] = 500
+        state.data["notify_time"] = 600
+    AlerterState.dump_and_pause()
+    with config["clients_file"].open() as f:
+        assert json.load(f) == {
+            "version": 1,
+            "clients": {
+                "clientid1": {"alert_time": 1672530700.0, "notify_time": 1672530800.0},
+                "another-client": {"alert_time": 1672531200.0, "notify_time": None},
+            },
+        }
+    monotonic_mock.return_value = 2000
+    AlerterState.initialize()
+    assert not config["clients_file"].exists()
+    state = AlerterState(clientid="clientid1")
+    with state:
+        assert state.data["alert_time"] == 1500
+        assert state.data["notify_time"] == 1600
+
+
+@pytest.mark.parametrize("version", [-1, None, "1", 1.5], ids=["-1", "null", "string 1", "1.5"])
+def test_initialize_refuses_unknown_state_file_version(version, fake_fs):
+    fake_fs.create_file(config["clients_file"])
+    with config["clients_file"].open("w") as f:
+        f.write(json.dumps({"version": version, "clients": {}}))
+    with unittest.mock.patch("cos_alerter.alerter.logger") as mock_logger:
+        try:
+            AlerterState.initialize()
+        except SystemExit as exc:
+            assert exc.code == 1
+        else:
+            assert False
+        mock_logger.critical.assert_called_once()
+        # The refusal tells the operator which state folder to remove.
+        assert str(config["base_dir"]) in str(mock_logger.critical.call_args)
+    assert config["clients_file"].exists()  # Left for inspection.
+
+
+def test_initialize_refuses_unversioned_state_file(fake_fs):
+    fake_fs.create_file(config["clients_file"])
+    with config["clients_file"].open("w") as f:
+        f.write('{"clientid1": {"alert_time": 1672531000.0, "notify_time": null}}')
+    with unittest.mock.patch("cos_alerter.alerter.logger") as mock_logger:
+        try:
+            AlerterState.initialize()
+        except SystemExit as exc:
+            assert exc.code == 1
+        else:
+            assert False
+        mock_logger.critical.assert_called_once()
+    assert config["clients_file"].exists()  # Left for inspection.
 
 
 @freezegun.freeze_time("2023-01-01")
