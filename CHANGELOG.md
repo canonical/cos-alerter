@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-07
+
 - Fix hanging test on Ubuntu 26.04
 - Detailed contributor's guide
 - Added silencing feature
@@ -19,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `clients.state` now records its format version; files written by any other release are
   rejected at startup with a message naming the state folder to remove
 
-## CI - updates
+### CI updates
 
 - Fixed deprecated job versions in the CI
 - Adopted the Observability rock/snap blueprints: rock and snap sources now
