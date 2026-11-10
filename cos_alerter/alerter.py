@@ -113,6 +113,8 @@ def deep_update(base: dict, new: typing.Optional[dict]):
 config = Config()
 state = {}
 
+STATE_FILE_VERSION = 1
+
 
 class AlerterState:
     """Class representing the state of COS Alerter.
@@ -158,45 +160,90 @@ class AlerterState:
         current_time = time.monotonic()
         state["start_date"] = datetime.datetime.timestamp(current_date)
         state["start_time"] = current_time
+        state["clients"] = AlerterState._load_client_states(current_time)
 
-        # state["clients"] should be of the form:
-        # {
-        #     <client_id>: {
-        #         "lock": <client_lock>,
-        #         "alert_time": <alert_time>,
-        #         "notify_time": <notify_time>,
-        #         "silenced_until": <optional_utc_timestamp>
-        #     },
-        #     ...
-        # }
-        state["clients"] = {}
+    @staticmethod
+    def _load_client_states(current_time: float) -> dict:
+        """Build the initial state of each configured client.
+
+        Recovers the alert and notification times from the state file dumped on
+        the last exit, if there is one.
+
+        Args:
+            current_time: The current monotonic time. Used as the initial
+                alert_time of each client when wait_for_first_connection is disabled.
+
+        Returns:
+            The initial state of each client, keyed by client id:
+            {
+                <client_id>: {
+                    "lock": <client_lock>,
+                    "alert_time": <alert_time>,
+                    "notify_time": <notify_time>,
+                    "silenced_until": <optional UTC datetime>
+                },
+                ...
+            }
+        """
+        clients = AlerterState._initialize_clients(current_time)
+        saved_clients = AlerterState._parse_clients_file()
+        AlerterState._restore_saved_times(clients, saved_clients)
+        return clients
+
+    @staticmethod
+    def _initialize_clients(current_time: float) -> dict:
+        """Create the default state of every configured client, keyed by client id.
+
+        Restores any saved silencing for each client.
+        """
+        clients = {}
         for client_id in config["watch"]["clients"]:
             alert_time = None if config["watch"]["wait_for_first_connection"] else current_time
-            state["clients"][client_id] = {
+            clients[client_id] = {
                 "lock": threading.Lock(),
                 "alert_time": alert_time,
                 "notify_time": None,
-                "silenced_until": None,
+                "silenced_until": AlerterState._load_silenced_until(client_id),
             }
+        return clients
 
-        # Recover any state that was dumped on last exit.
-        if config["clients_file"].exists():
-            with config["clients_file"].open() as f:
-                existing_clients = json.load(f)
-            config["clients_file"].unlink()
-            for client in existing_clients:
-                if client in state["clients"]:
-                    state["clients"][client]["alert_time"] = _restore_time(
-                        existing_clients[client]["alert_time"],
-                        f"last alert time for {client}",
-                    )
-                    state["clients"][client]["notify_time"] = _restore_time(
-                        existing_clients[client]["notify_time"],
-                        f"last notify time for {client}",
-                    )
+    @staticmethod
+    def _parse_clients_file() -> dict:
+        """Read and delete the clients file dumped on the last exit, if there is one.
 
-        for client_id, client_state in state["clients"].items():
-            client_state["silenced_until"] = AlerterState._load_silenced_until(client_id)
+        Returns the clients it holds, or an empty dict if there is no file. Exits if the
+        file was written in a state format this version of COS Alerter does not understand.
+        """
+        if not config["clients_file"].exists():
+            return {}
+        with config["clients_file"].open() as f:
+            data = json.load(f)
+        version = data.get("version")
+        if version != STATE_FILE_VERSION:
+            logger.critical(
+                "State file %s has version %s, which this version of COS Alerter "
+                "does not understand. It may have been written by an older or newer "
+                "release. Remove the state folder %s and start COS Alerter again. "
+                "Exiting...",
+                config["clients_file"],
+                version,
+                config["base_dir"],
+            )
+            sys.exit(1)
+        config["clients_file"].unlink()
+        return data["clients"]
+
+    @staticmethod
+    def _restore_saved_times(clients: dict, saved_clients: dict) -> None:
+        """Restore the saved alert and notification times of the given clients."""
+        for client, saved in saved_clients.items():
+            if client in clients:
+                clients[client]["alert_time"] = _restore_time(
+                    saved["alert_time"], f"last alert time for {client}"
+                )
+                clients[client]["notify_time"] = _restore_time(
+                    saved["notify_time"], f"last notify time for {client}"
+                )
 
     @staticmethod
     def _load_silenced_until(client_id: str) -> Optional[datetime.datetime]:
@@ -233,11 +280,14 @@ class AlerterState:
             state["clients"][client]["lock"].acquire()
         # Locks are not json serializable.
         clients_without_locks = {
-            client: {
-                "alert_time": to_utc_timestamp(state["clients"][client]["alert_time"]),
-                "notify_time": to_utc_timestamp(state["clients"][client]["notify_time"]),
-            }
-            for client in state["clients"]
+            "version": STATE_FILE_VERSION,
+            "clients": {
+                client: {
+                    "alert_time": to_utc_timestamp(state["clients"][client]["alert_time"]),
+                    "notify_time": to_utc_timestamp(state["clients"][client]["notify_time"]),
+                }
+                for client in state["clients"]
+            },
         }
         with config["clients_file"].open("w") as f:
             json.dump(clients_without_locks, f)
