@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Dropped `black` from the lint and format tooling; `ruff format` now handles formatting (#110)
+
 ## [1.0.0] - 2026-11-07
 
 - Fix hanging test on Ubuntu 26.04
