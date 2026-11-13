@@ -93,7 +93,10 @@ def test_main(notify_mock, add_mock, real_fs):
 
 
 def test_log_level_arg(real_fs):
-    main(run_for=0, argv=["cos-alerter", "--log-level", "DEBUG"])
+    main(
+        run_for=0,
+        argv=["cos-alerter", "--config", str(real_fs), "--log-level", "DEBUG"],
+    )
     assert logging.getLogger("cos_alerter").getEffectiveLevel() == logging.DEBUG
 
 
@@ -111,5 +114,5 @@ def test_client_loop_when_should_act(sleep_mock, should_act_mock, notify_mock, r
 @unittest.mock.patch("cos_alerter.daemon.create_app")
 @unittest.mock.patch("cos_alerter.daemon.waitress.serve")
 def test_main_with_dashboard_addr(waitress_serve_mock, create_app_mock, real_fs_dashboard_addr):
-    main(run_for=0, argv=["cos-alerter"])
+    main(run_for=0, argv=["cos-alerter", "--config", str(real_fs_dashboard_addr)])
     assert create_app_mock.call_count == 2  # Called once for API and once for dashboard
