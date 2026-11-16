@@ -28,6 +28,9 @@ logger = logging.getLogger(__name__)
 class Config:
     """Representation of the config file."""
 
+    data: Dict[str, typing.Any]
+    path: Path
+
     def __getitem__(self, key):
         """Dict style access for config values."""
         return self.data[key]
@@ -50,10 +53,13 @@ class Config:
         yaml = YAML(typ="rt")
 
         # Load default configuration
-        with open(
-            os.path.join(os.path.dirname(os.path.realpath(__file__)), "config-defaults.yaml")
-        ) as f:
-            self.data = yaml.load(f)
+        defaults_path = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "config-defaults.yaml"
+        )
+        with open(defaults_path) as f:
+            data = yaml.load(f)
+        if not isinstance(data, dict):
+            raise ValueError(f"Default config file {defaults_path} is empty or not a mapping.")
 
         # Load user configuration
         try:
@@ -66,37 +72,45 @@ class Config:
             logger.critical("Duplicate client IDs found in COS Alerter config. Exiting...")
             sys.exit(1)
 
+        if user_data is not None and not isinstance(user_data, dict):
+            logger.critical("COS Alerter config must be a YAML mapping. Exiting...")
+            sys.exit(1)
+
         # Validate that keys are valid SHA-512 hashes
         if user_data and user_data.get("watch", {}).get("clients"):
             if not self._validate_hashes(user_data["watch"]["clients"]):
                 logger.critical("Invalid SHA-512 hash(es) in config. Exiting...")
                 sys.exit(1)
 
-        deep_update(self.data, user_data)
-        self.data["watch"]["down_interval"] = durationpy.from_str(
-            self.data["watch"]["down_interval"]
+        deep_update(data, user_data)
+        data["watch"]["down_interval"] = durationpy.from_str(
+            data["watch"]["down_interval"]
         ).total_seconds()
-        self.data["notify"]["repeat_interval"] = durationpy.from_str(
-            self.data["notify"]["repeat_interval"]
+        data["notify"]["repeat_interval"] = durationpy.from_str(
+            data["notify"]["repeat_interval"]
         ).total_seconds()
 
         # if dashboard address key is missing, set it to None
         dashboard_addr = None
         try:
-            dashboard_addr = self.data["dashboard_listen_addr"]
+            dashboard_addr = data["dashboard_listen_addr"]
         except KeyError:
-            self.data["dashboard_listen_addr"] = dashboard_addr
+            data["dashboard_listen_addr"] = dashboard_addr
 
         # Static variables. We define them here so it is easy to expose them later as config
         # values if needed.
         base_dir = xdg_base_dirs.xdg_state_home() / "cos_alerter"
         if not base_dir.exists():
             base_dir.mkdir(parents=True)
-        self.data["clients_file"] = base_dir / "clients.state"
-        self.data["base_dir"] = base_dir
+        data["clients_file"] = base_dir / "clients.state"
+        data["base_dir"] = base_dir
+
+        # Swap in the fully built config in one assignment so readers never see a
+        # partially loaded (or None) config.
+        self.data = data
 
 
-def deep_update(base: dict, new: typing.Optional[dict]):
+def deep_update(base: Dict[str, typing.Any], new: Optional[Dict[str, typing.Any]]) -> None:
     """Deep dict update.
 
     Same as dict.update() except it recurses into subdicts.
