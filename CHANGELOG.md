@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed a rarely failing unit test caused by daemon tests leaving background threads running (#108)
+- Tightened type hints on `Config.data` and `deep_update()`, and `Config.reload()` now rejects config files that are not YAML mappings
+
 ## [1.0.0] - 2026-11-07
 
 - Fix hanging test on Ubuntu 26.04

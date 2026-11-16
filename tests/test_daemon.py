@@ -117,7 +117,20 @@ def test_main(notify_mock, add_mock, real_fs):
 # close when the previous test ends and so the socket is held open.
 
 
-def test_log_level_arg(mock_fs):
+@pytest.fixture
+def no_background_threads():
+    """Stop main() from leaving server and client threads running after the test.
+
+    Those threads run forever and keep doing file I/O through pyfakefs in later tests,
+    which made the suite flaky (see issue #108).
+    """
+    with unittest.mock.patch("cos_alerter.daemon.waitress.serve"), unittest.mock.patch(
+        "cos_alerter.daemon.client_loop"
+    ):
+        yield
+
+
+def test_log_level_arg(mock_fs, no_background_threads):
     main(run_for=0, argv=["cos-alerter", "--log-level", "DEBUG"])
     assert logging.getLogger("cos_alerter").getEffectiveLevel() == logging.DEBUG
 
@@ -134,7 +147,10 @@ def test_client_loop_when_should_act(sleep_mock, should_act_mock, notify_mock, m
 
 
 @unittest.mock.patch("cos_alerter.daemon.create_app")
+@unittest.mock.patch("cos_alerter.daemon.client_loop")
 @unittest.mock.patch("cos_alerter.daemon.waitress.serve")
-def test_main_with_dashboard_addr(waitress_serve_mock, create_app_mock, mock_fs_dashboard_addr):
+def test_main_with_dashboard_addr(
+    waitress_serve_mock, client_loop_mock, create_app_mock, mock_fs_dashboard_addr
+):
     main(run_for=0, argv=["cos-alerter"])
     assert create_app_mock.call_count == 2  # Called once for API and once for dashboard
