@@ -23,6 +23,9 @@ from cos_alerter.alerter import (
     split_destinations,
     up_time,
 )
+from cos_alerter.alerter import (
+    __file__ as alerter_file,
+)
 
 
 def assert_notifications(notify_mock, add_mock, pd_mock, title, body, dedup_key):
@@ -62,6 +65,28 @@ def test_file_not_found_error(fake_fs):
             mock_logger.critical.assert_called_once_with("Config file not found. Exiting...")
         else:
             assert False
+
+
+def test_config_not_a_mapping(fake_fs):
+    with open("/etc/cos-alerter.yaml", "w") as f:
+        f.write("- just\n- a\n- list\n")
+    with unittest.mock.patch("cos_alerter.alerter.logger") as mock_logger:
+        with pytest.raises(SystemExit) as exc:
+            config.reload()
+    assert exc.value.code == 1
+    mock_logger.critical.assert_called_once_with(
+        "COS Alerter config must be a YAML mapping. Exiting..."
+    )
+
+
+def test_default_config_not_a_mapping(fake_fs):
+    defaults_path = os.path.join(
+        os.path.dirname(os.path.realpath(alerter_file)), "config-defaults.yaml"
+    )
+    with open(defaults_path, "w") as f:
+        f.write("")
+    with pytest.raises(ValueError, match="is empty or not a mapping"):
+        config.reload()
 
 
 def test_duplicate_key_error(fake_fs):
